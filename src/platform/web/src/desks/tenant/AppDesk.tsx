@@ -28,10 +28,17 @@ import {
 import { listFinancialYears } from "@codexsun/core-web/modules/organisation/financial-year";
 import { getToken, logout } from "../../shared/api/platform-api";
 import { setPlatformDocumentTitle } from "../../shared/document/PageTitle";
+import { useTenantUserProfileQuery } from "../../modules/tenant-user/tenant-user.hooks";
 
 function lazyWorkspace<Props>(loader: () => Promise<ComponentType<Props>>) {
   return lazy(async () => ({ default: await loader() }));
 }
+
+const TenantUserProfileWorkspace = lazyWorkspace(() =>
+  import("../../modules/tenant-user/tenant-user.profile.workspace").then(
+    (module) => module.TenantUserProfileWorkspace
+  )
+);
 
 const AddressTypesWorkspace = lazyWorkspace(() =>
   import("@codexsun/core-web/modules/common/contacts/address-types").then(
@@ -232,6 +239,12 @@ const DepositWorkspace = lazy(() =>
 const PaymentWorkspace = lazy(() =>
   import("../../modules/payment").then((module) => ({ default: module.PaymentWorkspace }))
 );
+const BankAccountWorkspace = lazy(() =>
+  import("../../modules/bank-account").then((module) => ({ default: module.BankAccountWorkspace }))
+);
+const CommissionWorkspace = lazy(() =>
+  import("../../modules/commission").then((module) => ({ default: module.CommissionWorkspace }))
+);
 type AppPage =
   | "application.overview"
   | "application.landing"
@@ -245,6 +258,9 @@ type AppPage =
   | "trades.overview"
   | "trades.details.deposits"
   | "trades.details.payments"
+  | "trades.banking.bank-accounts"
+  | "trades.commission.deposits"
+  | "trades.commission.withdrawals"
   | "core.common.location.countries"
   | "core.common.location.states"
   | "core.common.location.districts"
@@ -263,7 +279,17 @@ const ACCOUNTING_YEAR_CONTEXT_STORAGE_KEY = "codexsun.tenant.financial-year-id";
 
 export function AppDesk() {
   const queryClient = useQueryClient();
-  const signedInUser = signedInTenantUser();
+  const profileQuery = useTenantUserProfileQuery();
+  const tokenUser = signedInTenantUser();
+  const signedInUser = profileQuery.data
+    ? {
+        ...tokenUser,
+        avatarSrc: profileQuery.data.avatarUrl,
+        email: profileQuery.data.email,
+        fallback: userInitials(profileQuery.data.name),
+        name: profileQuery.data.name
+      }
+    : tokenUser;
   const [page, setPage] = useState<AppPage>(() => pageFromUrl(readPublishedLandingApp()));
   const [publishedLandingApp, setPublishedLandingApp] = useState<PlatformAppId | null>(() =>
     readPublishedLandingApp()
@@ -423,7 +449,7 @@ export function AppDesk() {
     activeApp,
     safePage,
     (nextPage) => selectPage(nextPage as AppPage),
-    signedInUser.permissions
+    signedInUser.tenantRole === "admin" ? [] : signedInUser.permissions
   );
   const workspaceItems = appWorkspaceItems(switchableApps, activeApp).map((item) => ({
     ...item,
@@ -524,6 +550,7 @@ export function AppDesk() {
         homeHref="/"
         menuItems={menuItems}
         onLogout={handleLogout}
+        profileHref="/app/application/profile"
         subtitle={null}
         title={null}
         user={signedInUser}
@@ -537,6 +564,13 @@ export function AppDesk() {
           {safePage === "trades.overview" ? <TradesOverviewWorkspace user={signedInUser} /> : null}
           {safePage === "trades.details.deposits" ? <DepositWorkspace /> : null}
           {safePage === "trades.details.payments" ? <PaymentWorkspace /> : null}
+          {safePage === "trades.banking.bank-accounts" ? <BankAccountWorkspace /> : null}
+          {safePage === "trades.commission.deposits" ? (
+            <CommissionWorkspace direction="deposit" />
+          ) : null}
+          {safePage === "trades.commission.withdrawals" ? (
+            <CommissionWorkspace direction="withdraw" />
+          ) : null}
           {safePage === "application.landing" ? (
             <LandingDesk
               enabledApps={enabledApps}
@@ -544,7 +578,7 @@ export function AppDesk() {
               onPublish={publishLandingApp}
             />
           ) : null}
-          {safePage === "application.profile" ? <ApplicationProfile /> : null}
+          {safePage === "application.profile" ? <TenantUserProfileWorkspace /> : null}
           {safePage === "application.settings" ? <ApplicationSettings /> : null}
           {safePage === "application.access.users" ? <TenantUserWorkspace /> : null}
           {safePage === "application.access.roles" ? <TenantRoleWorkspace /> : null}
@@ -629,6 +663,9 @@ function pageFromUrl(landingApp: PlatformAppId | null): AppPage {
     key === "trades.overview" ||
     key === "trades.details.deposits" ||
     key === "trades.details.payments" ||
+    key === "trades.banking.bank-accounts" ||
+    key === "trades.commission.deposits" ||
+    key === "trades.commission.withdrawals" ||
     key === "core.common.location.countries" ||
     key === "core.common.location.states" ||
     key === "core.common.location.districts" ||
@@ -778,19 +815,6 @@ function ApplicationOverview({
   );
 }
 
-function ApplicationProfile() {
-  return (
-    <Card
-      title="Application Profile"
-      description="Client identity, workspace access, and permission context."
-    >
-      <div className="flex flex-wrap gap-2">
-        <StatusBadge tone="green">Always enabled</StatusBadge>
-      </div>
-    </Card>
-  );
-}
-
 function ApplicationSettings() {
   return (
     <Card title="Application Settings" description="Trades client application settings.">
@@ -903,6 +927,9 @@ function titleForPage(page: AppPage) {
     "trades.overview": "Trades Overview",
     "trades.details.deposits": "Deposits",
     "trades.details.payments": "Payments",
+    "trades.banking.bank-accounts": "Bank Accounts",
+    "trades.commission.deposits": "Deposit Commission",
+    "trades.commission.withdrawals": "Withdrawal Commission",
     "core.common.location.cities": "Cities",
     "core.common.location.countries": "Countries",
     "core.common.location.districts": "Districts",

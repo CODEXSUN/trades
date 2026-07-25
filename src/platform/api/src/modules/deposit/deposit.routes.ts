@@ -11,6 +11,8 @@ const statusSchema = z.enum(["active", "inactive"]);
 const depositSchema = z.object({
   amount: z.number().positive(),
   bank: z.string(),
+  bankAccountId: z.number().int().positive().nullable(),
+  bankCode: z.string().nullable(),
   date: z.string(),
   id: z.number().int().positive(),
   name: z.string(),
@@ -22,7 +24,7 @@ const depositSchema = z.object({
 const depositPayloadSchema = z
   .object({
     amount: z.number().positive(),
-    bank: z.string().trim().min(2).max(180),
+    bankAccountId: z.number().int().positive(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Deposit date must use YYYY-MM-DD."),
     name: z.string().trim().min(2).max(200),
     reference: z.string().trim().min(1).max(180),

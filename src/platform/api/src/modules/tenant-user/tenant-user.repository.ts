@@ -33,6 +33,13 @@ export class TenantUserRepository {
       );
     return result.rows[0] ? mapRow(result.rows[0]) : null;
   }
+  async findByEmail(email: string) {
+    const result =
+      await sql<Row>`SELECT id,uuid,name,email,status,is_protected FROM users WHERE LOWER(email)=LOWER(${email}) LIMIT 1`.execute(
+        this.database
+      );
+    return result.rows[0] ? mapRow(result.rows[0]) : null;
+  }
   async listActiveReferences() {
     const rows = await this.database
       .selectFrom("users")
@@ -66,6 +73,17 @@ export class TenantUserRepository {
       );
     else
       await sql`UPDATE users SET name=${input.name},email=${input.email},status=${input.status} WHERE id=${id}`.execute(
+        this.database
+      );
+    return this.find(id);
+  }
+  async updateProfile(id: number, input: { email: string; name: string }, passwordHash?: string) {
+    if (passwordHash)
+      await sql`UPDATE users SET name=${input.name},email=${input.email},password_hash=${passwordHash} WHERE id=${id}`.execute(
+        this.database
+      );
+    else
+      await sql`UPDATE users SET name=${input.name},email=${input.email} WHERE id=${id}`.execute(
         this.database
       );
     return this.find(id);

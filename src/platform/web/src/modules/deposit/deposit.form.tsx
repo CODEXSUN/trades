@@ -11,6 +11,7 @@ import {
 } from "@codexsun/ui/workspace/upsert";
 import { depositSchema } from "./deposit.schema";
 import type { DepositRecord, DepositSavePayload } from "./deposit.types";
+import { BankAccountLookup } from "../bank-account";
 
 export function DepositForm({
   error,
@@ -101,10 +102,11 @@ function DepositFormBody({
           />
         </WorkspaceFormField>
         <WorkspaceFormField label="Bank" required>
-          <Input
-            maxLength={180}
-            value={value.bank}
-            onChange={(event) => setValue((current) => ({ ...current, bank: event.target.value }))}
+          <BankAccountLookup
+            value={value.bankAccountId}
+            onValueChange={(bankAccountId) =>
+              setValue((current) => ({ ...current, bankAccountId }))
+            }
           />
         </WorkspaceFormField>
         <WorkspaceFormField label="Name" required>
@@ -164,7 +166,7 @@ function DepositFormBody({
 function emptyDeposit(): DepositSavePayload {
   return {
     amount: 0,
-    bank: "",
+    bankAccountId: 0,
     date: new Date().toISOString().slice(0, 10),
     name: "",
     reference: "",
@@ -176,7 +178,7 @@ function emptyDeposit(): DepositSavePayload {
 function toPayload(record: DepositRecord): DepositSavePayload {
   return {
     amount: record.amount,
-    bank: record.bank,
+    bankAccountId: record.bankAccountId ?? 0,
     date: record.date,
     name: record.name,
     reference: record.reference,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, Printer, RefreshCw } from "lucide-react";
 import { toast } from "@codexsun/ui/components/sonner";
 import {
   AlertDialog,
@@ -21,6 +21,7 @@ import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import { DepositForm } from "./deposit.form";
 import { depositQueryKey, useDeposits } from "./deposit.hooks";
 import { DepositList } from "./deposit.list";
+import { printDepositReport } from "./deposit.print";
 import {
   activateDeposit,
   createDeposit,
@@ -116,6 +117,16 @@ export function DepositWorkspace() {
           >
             <RefreshCw className={cn("size-4", depositsQuery.isFetching && "animate-spin")} />
             Refresh
+          </Button>
+          <Button
+            className="h-9 rounded-md"
+            disabled={filteredDeposits.length === 0}
+            onClick={() => printDepositReport(filteredDeposits)}
+            type="button"
+            variant="outline"
+          >
+            <Printer className="size-4" />
+            Print PDF
           </Button>
           <Button className="h-9 rounded-md" onClick={() => setEditing(null)} type="button">
             <Plus className="size-4" />

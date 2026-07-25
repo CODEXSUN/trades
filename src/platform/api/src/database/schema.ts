@@ -29,11 +29,14 @@ export type PlatformDatabase = {
 };
 
 export type TenantDatabase = {
-  deposit_commissions: DepositCommissionsTable;
+  bank_accounts: BankAccountsTable;
+  bank_ledger_entries: BankLedgerEntriesTable;
+  commission_entries: CommissionEntriesTable;
+  commission_entry_lines: CommissionEntryLinesTable;
+  commission_variants: CommissionVariantsTable;
   deposits: DepositsTable;
   schema_migrations: TenantMigrationsTable;
   module_settings: TenantModuleSettingsTable;
-  payment_commissions: PaymentCommissionsTable;
   payments: PaymentsTable;
   permissions: TenantPermissionsTable;
   role_permissions: TenantRolePermissionsTable;
@@ -45,6 +48,7 @@ export type TenantDatabase = {
 export type DepositsTable = {
   amount: number | string;
   bank: string;
+  bank_account_id: number | null;
   created_at: TimestampColumn;
   id: Generated<number>;
   name: string;
@@ -56,17 +60,41 @@ export type DepositsTable = {
   uuid: string;
 };
 
-export type DepositCommissionsTable = {
-  amount_1: number | string;
-  amount_2: number | string;
-  amount_3: number | string;
+export type CommissionVariantsTable = {
+  code: string;
   created_at: TimestampColumn;
-  deposit_id: number;
+  display_order: number;
   id: Generated<number>;
-  mode: "deposit" | "receipt";
-  percentage_1: number | string;
-  percentage_2: number | string;
-  percentage_3: number | string;
+  name: string;
+  percentage: number | string;
+  status: "active" | "inactive";
+  updated_at: TimestampColumn;
+  uuid: string;
+};
+
+export type CommissionEntriesTable = {
+  amount: number | string;
+  created_at: TimestampColumn;
+  direction: "deposit" | "withdraw";
+  id: Generated<number>;
+  name: string;
+  reference: string;
+  settled_at: TimestampColumn | null;
+  settled_by: string | null;
+  source_record_id: number;
+  tg_code: string;
+  transaction_date: string;
+  updated_at: TimestampColumn;
+  uuid: string;
+};
+
+export type CommissionEntryLinesTable = {
+  amount: number | string;
+  commission_entry_id: number;
+  commission_variant_id: number;
+  created_at: TimestampColumn;
+  id: Generated<number>;
+  percentage: number | string;
   updated_at: TimestampColumn;
   uuid: string;
 };
@@ -74,6 +102,7 @@ export type DepositCommissionsTable = {
 export type PaymentsTable = {
   amount: number | string;
   bank: string;
+  bank_account_id: number | null;
   created_at: TimestampColumn;
   id: Generated<number>;
   name: string;
@@ -85,17 +114,43 @@ export type PaymentsTable = {
   uuid: string;
 };
 
-export type PaymentCommissionsTable = {
-  amount_1: number | string;
-  amount_2: number | string;
-  amount_3: number | string;
+export type BankAccountsTable = {
+  account_name: string;
+  bank_name: string;
+  branch: string;
+  code: string;
   created_at: TimestampColumn;
   id: Generated<number>;
-  mode: "deposit" | "receipt";
-  payment_id: number;
-  percentage_1: number | string;
-  percentage_2: number | string;
-  percentage_3: number | string;
+  ifsc: string;
+  opening_balance: number | string;
+  status: "active" | "inactive";
+  updated_at: TimestampColumn;
+  uuid: string;
+};
+
+export type BankLedgerEntriesTable = {
+  amount: number | string;
+  bank_account_id: number;
+  counterparty_bank_account_id: number | null;
+  created_at: TimestampColumn;
+  direction: "credit" | "debit";
+  entry_type:
+    | "cash_deposit"
+    | "cash_withdrawal"
+    | "deposit"
+    | "opening"
+    | "payment"
+    | "transfer_in"
+    | "transfer_out";
+  id: Generated<number>;
+  narration: string;
+  reconciled_at: TimestampColumn | null;
+  reconciled_by: string | null;
+  reference: string;
+  source_module: "deposit" | "payment" | null;
+  source_record_id: number | null;
+  transaction_date: string;
+  transfer_uuid: string | null;
   updated_at: TimestampColumn;
   uuid: string;
 };

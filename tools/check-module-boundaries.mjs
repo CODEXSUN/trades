@@ -27,6 +27,8 @@ const requiredBackendRoles = [
   "types"
 ];
 const reducedPlatformBackendModules = new Set([
+  "bank-account",
+  "commission",
   "deposit",
   "payment",
   "tenant-user",

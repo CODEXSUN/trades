@@ -3,6 +3,8 @@ export type PaymentStatus = "active" | "inactive";
 export type PaymentRecord = {
   amount: number;
   bank: string;
+  bankAccountId: number | null;
+  bankCode: string | null;
   date: string;
   id: number;
   name: string;
@@ -14,7 +16,7 @@ export type PaymentRecord = {
 
 export type PaymentSavePayload = {
   amount: number;
-  bank: string;
+  bankAccountId: number;
   date: string;
   name: string;
   reference: string;

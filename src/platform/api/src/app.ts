@@ -18,6 +18,8 @@ import { bootstrapPlatformDatabase, closePlatformDatabase } from "./database/pla
 import { closeAllTenantDatabases } from "./database/tenant-database.js";
 import { depositModule } from "./modules/deposit/index.js";
 import { paymentModule } from "./modules/payment/index.js";
+import { bankAccountModule } from "./modules/bank-account/index.js";
+import { commissionModule } from "./modules/commission/index.js";
 
 export async function createApp() {
   console.info("[platform.boot] bootstrap started");
@@ -59,8 +61,10 @@ export async function createApp() {
             tenantUserRoleModule.key,
             tenantRolePermissionModule.key,
             storageManagerModule.key,
+            bankAccountModule.key,
             depositModule.key,
-            paymentModule.key
+            paymentModule.key,
+            commissionModule.key
           ],
           runtime: "platform-foundation"
         },
@@ -85,8 +89,10 @@ export async function createApp() {
       tenantUserRoleModule,
       tenantRolePermissionModule,
       storageManagerModule,
+      bankAccountModule,
       depositModule,
-      paymentModule
+      paymentModule,
+      commissionModule
     ],
     { app },
     {

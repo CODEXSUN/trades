@@ -33,6 +33,14 @@ const applicationSeeds = [
     .join(" · ")
 }));
 const tradesSeeds = [
+  "bank-account.view",
+  "bank-account.create",
+  "bank-account.update",
+  "bank-account.lifecycle",
+  "bank-account.delete",
+  "bank-account.entry",
+  "bank-account.transfer",
+  "bank-account.reconcile",
   "deposit.view",
   "deposit.create",
   "deposit.update",
@@ -42,7 +50,10 @@ const tradesSeeds = [
   "payment.create",
   "payment.update",
   "payment.lifecycle",
-  "payment.delete"
+  "payment.delete",
+  "commission.view",
+  "commission.configure",
+  "commission.settle"
 ].map((key) => ({
   key: `platform.trades.${key}`,
   label: key

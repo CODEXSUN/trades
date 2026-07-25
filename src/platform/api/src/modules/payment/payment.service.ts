@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { AppError } from "@codexsun/framework/errors";
 import { recordTenantAccessAudit } from "../../database/tenant-access-audit.js";
+import { findActiveBankAccountLink } from "../bank-account/index.js";
 import { PaymentRepository } from "./payment.repository.js";
 import type {
   Payment,
@@ -30,9 +31,9 @@ export class PaymentService {
 
   async create(input: PaymentSavePayload) {
     await this.context.authorize("platform.trades.payment.create");
-    const value = normalizePayment(input);
+    const value = await this.normalize(input);
     const record = await this.save(() =>
-      this.repository.create(value, randomBytes(4).toString("hex"), randomBytes(4).toString("hex"))
+      this.repository.create(value, randomBytes(4).toString("hex"))
     );
     await this.audit("created", record);
     return record;
@@ -41,9 +42,8 @@ export class PaymentService {
   async update(id: string, input: PaymentSavePayload) {
     await this.context.authorize("platform.trades.payment.update");
     const current = await this.required(id);
-    const record = (await this.save(() =>
-      this.repository.update(current.id, normalizePayment(input))
-    ))!;
+    const value = await this.normalize(input);
+    const record = (await this.save(() => this.repository.update(current.id, value)))!;
     await this.audit("updated", record);
     return record;
   }
@@ -90,20 +90,25 @@ export class PaymentService {
       throw error;
     }
   }
-}
 
-function normalizePayment(input: PaymentSavePayload): PaymentPersistencePayload {
-  const amount = roundMoney(input.amount);
-  if (amount <= 0) throw AppError.validation("Payment amount must be greater than zero.");
-  return {
-    amount,
-    bank: input.bank.trim(),
-    date: input.date,
-    name: input.name.trim(),
-    reference: input.reference.trim(),
-    status: input.status,
-    tgCode: input.tgCode.trim().toUpperCase()
-  };
+  private async normalize(input: PaymentSavePayload): Promise<PaymentPersistencePayload> {
+    const amount = roundMoney(input.amount);
+    if (amount <= 0) throw AppError.validation("Payment amount must be greater than zero.");
+    const account = await findActiveBankAccountLink(this.context.database, input.bankAccountId);
+    if (!account) throw AppError.notFound("Bank account was not found.");
+    if (account.status !== "active") throw AppError.conflict("Bank account is inactive.");
+    return {
+      amount,
+      bank: `${account.code} · ${account.accountName}`,
+      bankAccountId: account.id,
+      bankCode: account.code,
+      date: input.date,
+      name: input.name.trim(),
+      reference: input.reference.trim(),
+      status: input.status,
+      tgCode: input.tgCode.trim().toUpperCase()
+    };
+  }
 }
 
 function roundMoney(value: number) {

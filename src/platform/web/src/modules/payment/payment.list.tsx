@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
+import { format, parseISO } from "date-fns";
 import { WorkspaceRowActions } from "@codexsun/ui/workspace/row-actions";
 import { WorkspaceStatusBadge } from "@codexsun/ui/workspace/status";
 import { WorkspaceTable } from "@codexsun/ui/workspace/table";
@@ -21,7 +22,11 @@ export function PaymentList({
   records: PaymentRecord[];
 }) {
   const columns: ColumnDef<PaymentRecord>[] = [
-    { accessorKey: "date", header: "Date" },
+    {
+      accessorKey: "date",
+      cell: ({ row }) => format(parseISO(row.original.date), "dd-MMM-yyyy"),
+      header: "Date"
+    },
     { accessorKey: "tgCode", header: "TG code" },
     {
       accessorKey: "name",
@@ -90,13 +95,15 @@ export function PaymentList({
   ];
 
   return (
-    <WorkspaceTable
-      columns={columns}
-      data={records}
-      emptyState="No payments found."
-      isLoading={loading}
-      minWidth="980px"
-    />
+    <div className="[&_td]:border-r [&_td]:border-border/70 [&_td:last-child]:border-r-0 [&_th]:border-r [&_th]:border-border/70 [&_th:last-child]:border-r-0">
+      <WorkspaceTable
+        columns={columns}
+        data={records}
+        emptyState="No payments found."
+        isLoading={loading}
+        minWidth="980px"
+      />
+    </div>
   );
 }
 

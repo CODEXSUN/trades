@@ -2,24 +2,11 @@ import type { Kysely } from "kysely";
 import type { TenantDatabase } from "../../database/schema.js";
 
 export type DepositStatus = "active" | "inactive";
-export type DepositCommissionMode = "deposit" | "receipt";
-
-export type DepositCommission = {
-  amount1: number;
-  amount2: number;
-  amount3: number;
-  depositId: number;
-  id: number;
-  mode: DepositCommissionMode;
-  percentage1: number;
-  percentage2: number;
-  percentage3: number;
-  uuid: string;
-};
-
 export type Deposit = {
   amount: number;
   bank: string;
+  bankAccountId: number | null;
+  bankCode: string | null;
   date: string;
   id: number;
   name: string;
@@ -31,7 +18,7 @@ export type Deposit = {
 
 export type DepositSavePayload = {
   amount: number;
-  bank: string;
+  bankAccountId: number;
   date: string;
   name: string;
   reference: string;
@@ -48,4 +35,4 @@ export type DepositContext = {
   tenantId: string;
 };
 
-export type DepositPersistencePayload = DepositSavePayload;
+export type DepositPersistencePayload = DepositSavePayload & { bank: string; bankCode: string };

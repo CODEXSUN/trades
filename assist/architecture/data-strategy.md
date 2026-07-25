@@ -133,15 +133,23 @@ resolve to `TRADES_DB_NAME`.
 Business APIs must reject arbitrary database selection. The application boot lifecycle applies
 Platform and business migrations to the same physical database in their documented order.
 
-The Trades desk owns four transaction tables in the same physical database:
+The Trades desk owns bank-ledger and transaction tables in the same physical database:
 
-- `deposits` and `deposit_commissions`
-- `payments` and `payment_commissions`
+- `bank_accounts` and `bank_ledger_entries`
 
-Each commission table has a unique foreign key to its owning transaction ID. Deposit and Payment
-posting payloads contain transaction fields only. Creation initializes the linked commission row
-with zero percentages and amounts so commission handling can remain a separate workflow without
-mixing it into transaction entry. Deposit and Payment references are independently unique, and
-lifecycle mutations are audited.
+- `deposits` and `payments`
+- `commission_variants`, `commission_entries`, and `commission_entry_lines`
+
+The Commission module owns common percentage variants and normalized per-transaction amount
+snapshots. Each entry uses an explicit `deposit` or `withdraw` direction and source record ID;
+Deposit and Payment call only the Commission module's public synchronization contract. Posting
+payloads remain transaction-only. Settlement confirms the transaction commission and removes it
+from the default unsettled view without changing bank reconciliation. Deposit and Payment
+references are independently unique, and lifecycle and settlement mutations are audited.
+
+Deposits post debit entries and Payments post credit entries through the Bank Account module's
+public contract. Opening balances, manual cash deposits/withdrawals, paired internal transfers, and
+reconciliation markers remain owned by that module. Transaction rows retain the selected bank ID
+and a display snapshot; existing free-text bank values are migrated to persisted bank accounts.
 
 Project Manager and Task Manager retain their existing JSON stores and are outside this SQL database split.

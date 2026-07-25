@@ -3,6 +3,8 @@ export type DepositStatus = "active" | "inactive";
 export type DepositRecord = {
   amount: number;
   bank: string;
+  bankAccountId: number | null;
+  bankCode: string | null;
   date: string;
   id: number;
   name: string;
@@ -14,7 +16,7 @@ export type DepositRecord = {
 
 export type DepositSavePayload = {
   amount: number;
-  bank: string;
+  bankAccountId: number;
   date: string;
   name: string;
   reference: string;

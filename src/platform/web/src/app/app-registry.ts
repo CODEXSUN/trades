@@ -1,6 +1,7 @@
 import {
   ArrowDownToLineIcon,
   ArrowUpFromLineIcon,
+  BadgePercentIcon,
   Building2Icon,
   CircleGaugeIcon,
   ClipboardListIcon,
@@ -144,6 +145,10 @@ function tradesMenuItems(
     permissions.length === 0 || permissions.includes("platform.trades.deposit.view");
   const canViewPayments =
     permissions.length === 0 || permissions.includes("platform.trades.payment.view");
+  const canViewBankAccounts =
+    permissions.length === 0 || permissions.includes("platform.trades.bank-account.view");
+  const canViewCommission =
+    permissions.length === 0 || permissions.includes("platform.trades.commission.view");
   const details: SidemenuItem[] = [
     ...(canViewDeposits
       ? [
@@ -173,6 +178,23 @@ function tradesMenuItems(
       onSelect: () => onSelect("trades.overview"),
       title: "Overview"
     },
+    ...(canViewBankAccounts
+      ? [
+          {
+            icon: LandmarkIcon,
+            isActive: activePage === "trades.banking.bank-accounts",
+            items: [
+              {
+                icon: LandmarkIcon,
+                isActive: activePage === "trades.banking.bank-accounts",
+                onSelect: () => onSelect("trades.banking.bank-accounts"),
+                title: "Bank Accounts"
+              }
+            ],
+            title: "Banking"
+          }
+        ]
+      : []),
     ...(details.length
       ? [
           {
@@ -180,6 +202,29 @@ function tradesMenuItems(
             isActive: activePage.startsWith("trades.details"),
             items: details,
             title: "Trade Details"
+          }
+        ]
+      : []),
+    ...(canViewCommission
+      ? [
+          {
+            icon: BadgePercentIcon,
+            isActive: activePage.startsWith("trades.commission"),
+            items: [
+              {
+                icon: ArrowDownToLineIcon,
+                isActive: activePage === "trades.commission.deposits",
+                onSelect: () => onSelect("trades.commission.deposits"),
+                title: "Deposit Commission"
+              },
+              {
+                icon: ArrowUpFromLineIcon,
+                isActive: activePage === "trades.commission.withdrawals",
+                onSelect: () => onSelect("trades.commission.withdrawals"),
+                title: "Withdrawal Commission"
+              }
+            ],
+            title: "Commission"
           }
         ]
       : [])

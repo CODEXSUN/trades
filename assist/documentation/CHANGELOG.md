@@ -16,6 +16,28 @@ New entries must keep database-facing work and application code work separate.
 
 ## v-1.0.6
 
+### [Unreleased] 2026-07-24 - Add bank accounts and reconciliation-ready statements
+
+#### Database Changes
+
+- Added module-owned bank account and debit/credit ledger tables, transaction bank links, legacy
+  bank backfill, opening entries, and Deposit/Payment ledger backfill.
+- Replaced fixed Deposit/Payment commission summary tables with Commission-owned common percentage
+  variants, transaction confirmation entries, and normalized percentage/amount lines.
+
+#### App Codebase Changes
+
+- Added the Banking desk, multiple bank-account CRUD, individual statements, manual cash entries,
+  internal transfers, reconciliation controls, and persisted autocomplete with popup creation in
+  Deposit and Payment forms.
+- Added separate Deposit Commission and Withdrawal Commission desk pages with date-range filters,
+  dynamic percentage columns, amount and commission totals, editable rates, and settlement
+  confirmation that removes confirmed rows from the unsettled lists.
+- Standardized Deposit, Payment, Commission, and Bank Statement date columns as `dd-MMM-yyyy`.
+- Added spreadsheet-style cell borders to Deposit, Payment, and Commission list tables.
+- Added detail-only browser print/PDF reports for filtered Deposits, Payments, Bank Accounts,
+  individual Bank Statements, and date-filtered Commission lists.
+
 ### [v 1.0.6] 2026-07-24 10:39 am - Establish Trades single-client transaction application
 
 #### Database Changes

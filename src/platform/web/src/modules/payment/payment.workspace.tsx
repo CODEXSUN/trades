@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, Printer, RefreshCw } from "lucide-react";
 import { toast } from "@codexsun/ui/components/sonner";
 import {
   AlertDialog,
@@ -21,6 +21,7 @@ import { buildShowingLabel } from "@codexsun/ui/workspace/utils";
 import { PaymentForm } from "./payment.form";
 import { paymentQueryKey, usePayments } from "./payment.hooks";
 import { PaymentList } from "./payment.list";
+import { printPaymentReport } from "./payment.print";
 import {
   activatePayment,
   createPayment,
@@ -120,6 +121,16 @@ export function PaymentWorkspace() {
           >
             <RefreshCw className={cn("size-4", paymentsQuery.isFetching && "animate-spin")} />
             Refresh
+          </Button>
+          <Button
+            className="h-9 rounded-md"
+            disabled={matchingPayments.length === 0}
+            onClick={() => printPaymentReport(matchingPayments)}
+            type="button"
+            variant="outline"
+          >
+            <Printer className="size-4" />
+            Print PDF
           </Button>
           <Button className="h-9 rounded-md" onClick={() => setEditing(null)} type="button">
             <Plus className="size-4" />

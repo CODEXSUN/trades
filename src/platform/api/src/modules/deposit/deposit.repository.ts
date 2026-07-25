@@ -1,5 +1,7 @@
 import { sql, type Kysely } from "kysely";
 import type { TenantDatabase } from "../../database/schema.js";
+import { deleteBankLedgerSourceEntry, syncBankLedgerSourceEntry } from "../bank-account/index.js";
+import { deleteCommissionSourceEntry, syncCommissionSourceEntry } from "../commission/index.js";
 import type {
   Deposit,
   DepositListFilters,
@@ -10,6 +12,8 @@ import type {
 type DepositRow = {
   amount: number | string;
   bank: string;
+  bank_account_id: number | null;
+  bank_code: string | null;
   id: number;
   name: string;
   reference: string;
@@ -25,8 +29,9 @@ export class DepositRepository {
   async list(filters: DepositListFilters = {}) {
     const term = `%${(filters.search ?? "").trim().toLowerCase()}%`;
     const result = await sql<DepositRow>`
-      SELECT d.id,d.uuid,d.transaction_date,d.tg_code,d.bank,d.name,d.amount,d.reference,d.status
+      SELECT d.id,d.uuid,d.transaction_date,d.tg_code,d.bank,d.bank_account_id,ba.code bank_code,d.name,d.amount,d.reference,d.status
       FROM deposits d
+      LEFT JOIN bank_accounts ba ON ba.id=d.bank_account_id
       WHERE (${filters.search ?? ""}='' OR LOWER(d.tg_code) LIKE ${term}
         OR LOWER(d.bank) LIKE ${term} OR LOWER(d.name) LIKE ${term}
         OR LOWER(d.reference) LIKE ${term})
@@ -37,28 +42,43 @@ export class DepositRepository {
 
   async find(id: string | number) {
     const result = await sql<DepositRow>`
-      SELECT d.id,d.uuid,d.transaction_date,d.tg_code,d.bank,d.name,d.amount,d.reference,d.status
+      SELECT d.id,d.uuid,d.transaction_date,d.tg_code,d.bank,d.bank_account_id,ba.code bank_code,d.name,d.amount,d.reference,d.status
       FROM deposits d
+      LEFT JOIN bank_accounts ba ON ba.id=d.bank_account_id
       WHERE d.id=${Number(id)} LIMIT 1
     `.execute(this.database);
     return result.rows[0] ? mapDeposit(result.rows[0]) : null;
   }
 
-  async create(input: DepositPersistencePayload, uuid: string, commissionUuid: string) {
+  async create(input: DepositPersistencePayload, uuid: string) {
     return this.database.transaction().execute(async (transaction) => {
       const result = await sql`
         INSERT INTO deposits
-          (uuid,transaction_date,tg_code,bank,name,amount,reference,status)
+          (uuid,transaction_date,tg_code,bank_account_id,bank,name,amount,reference,status)
         VALUES
-          (${uuid},${input.date},${input.tgCode},${input.bank},${input.name},${input.amount},${input.reference},${input.status})
+          (${uuid},${input.date},${input.tgCode},${input.bankAccountId},${input.bank},${input.name},${input.amount},${input.reference},${input.status})
       `.execute(transaction);
       const depositId = Number(result.insertId);
-      await sql`
-        INSERT INTO deposit_commissions
-          (uuid,deposit_id,mode,percentage_1,amount_1,percentage_2,amount_2,percentage_3,amount_3)
-        VALUES
-          (${commissionUuid},${depositId},'deposit',0,0,0,0,0,0)
-      `.execute(transaction);
+      await syncBankLedgerSourceEntry(transaction, {
+        amount: input.amount,
+        bankAccountId: input.bankAccountId,
+        date: input.date,
+        direction: "debit",
+        entryType: "deposit",
+        narration: `Deposit ${input.reference} · ${input.name}`,
+        reference: input.reference,
+        sourceModule: "deposit",
+        sourceRecordId: depositId
+      });
+      await syncCommissionSourceEntry(transaction, {
+        amount: input.amount,
+        date: input.date,
+        direction: "deposit",
+        name: input.name,
+        reference: input.reference,
+        sourceRecordId: depositId,
+        tgCode: input.tgCode
+      });
       return (await new DepositRepository(transaction).find(depositId))!;
     });
   }
@@ -67,10 +87,30 @@ export class DepositRepository {
     return this.database.transaction().execute(async (transaction) => {
       await sql`
         UPDATE deposits SET transaction_date=${input.date},tg_code=${input.tgCode},
-          bank=${input.bank},name=${input.name},amount=${input.amount},
+          bank_account_id=${input.bankAccountId},bank=${input.bank},name=${input.name},amount=${input.amount},
           reference=${input.reference},status=${input.status}
         WHERE id=${id}
       `.execute(transaction);
+      await syncBankLedgerSourceEntry(transaction, {
+        amount: input.amount,
+        bankAccountId: input.bankAccountId,
+        date: input.date,
+        direction: "debit",
+        entryType: "deposit",
+        narration: `Deposit ${input.reference} · ${input.name}`,
+        reference: input.reference,
+        sourceModule: "deposit",
+        sourceRecordId: id
+      });
+      await syncCommissionSourceEntry(transaction, {
+        amount: input.amount,
+        date: input.date,
+        direction: "deposit",
+        name: input.name,
+        reference: input.reference,
+        sourceRecordId: id,
+        tgCode: input.tgCode
+      });
       return new DepositRepository(transaction).find(id);
     });
   }
@@ -84,7 +124,8 @@ export class DepositRepository {
     const record = await this.find(id);
     if (!record) return null;
     await this.database.transaction().execute(async (transaction) => {
-      await sql`DELETE FROM deposit_commissions WHERE deposit_id=${id}`.execute(transaction);
+      await deleteBankLedgerSourceEntry(transaction, "deposit", id);
+      await deleteCommissionSourceEntry(transaction, "deposit", id);
       await sql`DELETE FROM deposits WHERE id=${id}`.execute(transaction);
     });
     return record;
@@ -95,6 +136,8 @@ function mapDeposit(row: DepositRow): Deposit {
   return {
     amount: Number(row.amount),
     bank: row.bank,
+    bankAccountId: row.bank_account_id ? Number(row.bank_account_id) : null,
+    bankCode: row.bank_code,
     date: toDate(row.transaction_date),
     id: Number(row.id),
     name: row.name,

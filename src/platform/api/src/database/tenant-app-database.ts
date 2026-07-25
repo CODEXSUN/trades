@@ -9,6 +9,8 @@ import type { Tenant } from "../modules/tenant/tenant.types.js";
 import { tenantRuntimeMigrations } from "../modules/tenant/tenant.migration.js";
 import { migrateDepositModule, seedDepositModule } from "../modules/deposit/index.js";
 import { migratePaymentModule, seedPaymentModule } from "../modules/payment/index.js";
+import { migrateBankAccountModule, seedBankAccountModule } from "../modules/bank-account/index.js";
+import { migrateCommissionModule, seedCommissionModule } from "../modules/commission/index.js";
 
 export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
   return [
@@ -18,14 +20,24 @@ export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
       statements
     })),
     {
-      description: "Deposit transactions and commission summaries.",
+      description: "Bank accounts, statements, transfers, and reconciliation.",
+      name: "trades.bank-account",
+      statements: ["RUN trades.bank-account"]
+    },
+    {
+      description: "Deposit transactions.",
       name: "trades.deposit",
       statements: ["RUN trades.deposit"]
     },
     {
-      description: "Payment transactions and commission summaries.",
+      description: "Payment transactions.",
       name: "trades.payment",
       statements: ["RUN trades.payment"]
+    },
+    {
+      description: "Common percentage variants and transaction confirmation commissions.",
+      name: "trades.commission",
+      statements: ["RUN trades.commission"]
     },
     ...coreTenantMigrations.map((migration) => ({
       ...migration,
@@ -37,10 +49,14 @@ export function tenantDatabaseMigrationsFor(_tenant: Tenant) {
 export async function migrateSelectedTenantApps(_database: Kysely<TenantDatabase>, tenant: Tenant) {
   const provisionedApps = ["application"];
 
+  await migrateBankAccountModule(_database);
+  provisionedApps.push("bank-account");
   await migrateDepositModule(_database);
   provisionedApps.push("deposit");
   await migratePaymentModule(_database);
   provisionedApps.push("payment");
+  await migrateCommissionModule(_database);
+  provisionedApps.push("commission");
   await migrateCoreTenantDatabase(tenant.dbName);
   provisionedApps.push("core");
 
@@ -53,10 +69,14 @@ export async function migrateSelectedTenantApps(_database: Kysely<TenantDatabase
 export async function seedSelectedTenantApps(_database: Kysely<TenantDatabase>, tenant: Tenant) {
   const seededApps = ["application"];
 
+  await seedBankAccountModule(_database);
+  seededApps.push("bank-account");
   await seedDepositModule(_database);
   seededApps.push("deposit");
   await seedPaymentModule(_database);
   seededApps.push("payment");
+  await seedCommissionModule(_database);
+  seededApps.push("commission");
   await seedCoreTenantDatabase(tenant.dbName);
   seededApps.push("core");
 

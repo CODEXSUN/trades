@@ -4,7 +4,7 @@
 
 This is the authoritative workspace map for the Trades single-client application.
 
-Last reviewed: 2026-07-23.
+Last reviewed: 2026-07-24.
 
 ## Executable Application
 
@@ -18,9 +18,10 @@ selection, tenant onboarding, Super Admin, or staff-admin desks. The public site
 
 The application contains two always-enabled desks:
 
-- `Trades` provides the business workspace, operational overview, and transaction-only Deposit and
-  Payment posting. Commission summaries remain separately persisted and are not part of those
-  posting screens or payloads.
+- `Trades` provides the business workspace, operational overview, transaction-only Deposit and
+  Payment posting, and module-owned Bank Accounts with individual statements, cash entries,
+  transfers, and reconciliation. Commission summaries remain separately persisted and are not part
+  of transaction posting screens or payloads.
 - `Application` provides client administration and Core-owned organisation/master modules.
 
 ## Installed Shared Repositories
@@ -63,7 +64,7 @@ Trades uses one physical database and boots it in this order:
 1. Create `TRADES_DB_NAME`.
 2. Run Platform infrastructure migrations and seeds.
 3. Reconcile the single internal client record to the same database.
-4. Run client runtime, Trades Deposit/Payment, and Core migrations and seeds in that database.
+4. Run client runtime, Trades Bank Account/Deposit/Payment, and Core migrations and seeds in that database.
 5. Start the API and Web application.
 
 The fixed database context must be validated against the signed session. Arbitrary database headers

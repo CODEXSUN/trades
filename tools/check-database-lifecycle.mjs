@@ -54,11 +54,13 @@ assertOrdered("src/platform/api/src/modules/tenant/tenant.seed.ts", [
   "seedTenantRolePermissionModule("
 ]);
 assertOrdered("src/platform/api/src/database/tenant-app-database.ts", [
+  "migrateBankAccountModule(",
   "migrateDepositModule(",
   "migratePaymentModule(",
   "migrateCoreTenantDatabase("
 ]);
 assertOrdered("src/platform/api/src/database/tenant-app-database.ts", [
+  "seedBankAccountModule(",
   "seedDepositModule(",
   "seedPaymentModule(",
   "seedCoreTenantDatabase("

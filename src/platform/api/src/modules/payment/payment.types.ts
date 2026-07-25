@@ -2,24 +2,11 @@ import type { Kysely } from "kysely";
 import type { TenantDatabase } from "../../database/schema.js";
 
 export type PaymentStatus = "active" | "inactive";
-export type PaymentCommissionMode = "deposit" | "receipt";
-
-export type PaymentCommission = {
-  amount1: number;
-  amount2: number;
-  amount3: number;
-  id: number;
-  mode: PaymentCommissionMode;
-  paymentId: number;
-  percentage1: number;
-  percentage2: number;
-  percentage3: number;
-  uuid: string;
-};
-
 export type Payment = {
   amount: number;
   bank: string;
+  bankAccountId: number | null;
+  bankCode: string | null;
   date: string;
   id: number;
   name: string;
@@ -31,7 +18,7 @@ export type Payment = {
 
 export type PaymentSavePayload = {
   amount: number;
-  bank: string;
+  bankAccountId: number;
   date: string;
   name: string;
   reference: string;
@@ -48,4 +35,4 @@ export type PaymentContext = {
   tenantId: string;
 };
 
-export type PaymentPersistencePayload = PaymentSavePayload;
+export type PaymentPersistencePayload = PaymentSavePayload & { bank: string; bankCode: string };

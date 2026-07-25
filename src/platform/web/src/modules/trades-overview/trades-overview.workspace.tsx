@@ -1,4 +1,5 @@
 import { HandshakeIcon, UserRoundIcon } from "lucide-react";
+import { TradesOverviewBankBalances } from "./trades-overview.bank-balances";
 
 export type TradesOverviewUser = {
   email: string;
@@ -7,7 +8,7 @@ export type TradesOverviewUser = {
 
 export function TradesOverviewWorkspace({ user }: { user: TradesOverviewUser }) {
   return (
-    <section aria-labelledby="trades-overview-title">
+    <section aria-labelledby="trades-overview-title" className="space-y-5">
       <div className="overflow-hidden rounded-md border bg-card shadow-sm">
         <div className="relative min-h-36 p-5 md:p-6">
           <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-gradient-to-l from-emerald-100 via-teal-50 to-transparent md:block" />
@@ -39,6 +40,7 @@ export function TradesOverviewWorkspace({ user }: { user: TradesOverviewUser }) 
           </div>
         </div>
       </div>
+      <TradesOverviewBankBalances />
     </section>
   );
 }
