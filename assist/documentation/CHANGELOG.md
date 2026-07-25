@@ -2,17 +2,31 @@
 
 ## Version State
 
-Current version: 1.0.6
+Current version: 1.0.7
 
-Release tag: v-1.0.6
+Release tag: v-1.0.7
 
-Changelog label: v 1.0.6
+Changelog label: v 1.0.7
 
 This changelog starts with Trades as an independent single-client application composed from
 `framework + ui + core + platform`. Source-project and sibling-product release histories are not
 Trades release history.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.7
+
+### [v 1.0.7] 2026-07-25 9:17 am - Standardize repository LF line endings
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Standardized detected repository text files on LF through a repository-owned `.gitattributes`
+  policy, preventing Windows Git from repeatedly warning about LF-to-CRLF conversion.
+- Bumped repository version to 1.0.7.
 
 ## v-1.0.6
 
