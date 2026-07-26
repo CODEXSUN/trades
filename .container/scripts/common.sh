@@ -56,11 +56,19 @@ prepare_env() {
   [ -f "$INFRA_ENV" ] || { echo "Shared CODEXSUN deployment env is missing: $INFRA_ENV" >&2; echo "Install CODEXSUN infrastructure first." >&2; exit 69; }
   set_env_value DB_USER "$(infra_env_value DB_USER)"
   set_env_value DB_PASSWORD "$(infra_env_value DB_PASSWORD)"
+  set_env_value TRADES_REDIS_USER "$(infra_env_value REDIS_USER)"
   set_env_value TRADES_REDIS_PASSWORD "$(infra_env_value REDIS_PASSWORD)"
-  set_env_value CODEXSUN_EDGE_NETWORK "$(infra_env_value CODEXSUN_DOCKER_NETWORK)"
+  set_env_value CODEXSUN_BACKEND_NETWORK "$(infra_env_value CODEXSUN_DOCKER_NETWORK)"
+  set_env_value CODEXSUN_EDGE_NETWORK "$(infra_env_value CODEXSUN_EDGE_NETWORK)"
+  set_env_value MARIADB_CONTAINER_NAME "$(infra_env_value MARIADB_CONTAINER_NAME)"
+  set_env_value REDIS_CONTAINER_NAME "$(infra_env_value REDIS_CONTAINER_NAME)"
+  set_env_value MEDIA_CONTAINER_NAME "$(infra_env_value MEDIA_CONTAINER_NAME)"
+  set_env_value DB_HOST "$(infra_env_value MARIADB_CONTAINER_NAME)"
   for key in JWT_SECRET SUPER_ADMIN_PASSWORD CLIENT_ADMIN_PASSWORD CLIENT_ADMIN_PASSWORD; do ensure_secret "$key"; done
   redis_password=$(env_value TRADES_REDIS_PASSWORD)
-  set_env_value TRADES_REDIS_URL "redis://:${redis_password}@codexsun-redis:6379/1"
+  redis_user=$(env_value TRADES_REDIS_USER default)
+  redis_container=$(env_value REDIS_CONTAINER_NAME cxapp-redis)
+  set_env_value TRADES_REDIS_URL "redis://${redis_user}:${redis_password}@${redis_container}:6379/1"
   chmod 600 "$DEPLOY_ENV" 2>/dev/null || true
 }
 
@@ -75,16 +83,22 @@ validate_env() {
 }
 
 require_shared_network() {
-  network=$(env_value CODEXSUN_EDGE_NETWORK codexsun-network)
-  docker network inspect "$network" >/dev/null 2>&1 || {
-    echo "Shared CODEXSUN network is missing: $network" >&2
-    echo "Install or repair CODEXSUN infrastructure first; Trades will not create the shared network." >&2
-    exit 69
-  }
+  for network in \
+    "$(env_value CODEXSUN_BACKEND_NETWORK cxapp-network)" \
+    "$(env_value CODEXSUN_EDGE_NETWORK cxapp-edge)"; do
+    docker network inspect "$network" >/dev/null 2>&1 || {
+      echo "Shared CXApp network is missing: $network" >&2
+      echo "Install or repair CXApp infrastructure first; Trades will not create it." >&2
+      exit 69
+    }
+  done
 }
 
 require_shared_infrastructure() {
-  for container in codexsun-mariadb codexsun-redis codexsun-media; do
+  for container in \
+    "$(env_value MARIADB_CONTAINER_NAME cxapp-mariadb)" \
+    "$(env_value REDIS_CONTAINER_NAME cxapp-redis)" \
+    "$(env_value MEDIA_CONTAINER_NAME cxapp-media)"; do
     [ "$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || true)" = "healthy" ] || {
       echo "Shared infrastructure container $container is not healthy. Install CODEXSUN first." >&2
       exit 69
@@ -95,9 +109,27 @@ require_shared_infrastructure() {
 ensure_trades_database() {
   database=$(env_value TRADES_DB_NAME trades_db)
   case "$database" in ""|*[!A-Za-z0-9_]*) echo "Unsafe TRADES_DB_NAME." >&2; exit 78 ;; esac
-  docker exec -e MYSQL_PWD="$(env_value DB_PASSWORD)" codexsun-mariadb \
-    mariadb -u "$(env_value DB_USER codexsun_app)" \
+  docker exec -e MYSQL_PWD="$(env_value DB_PASSWORD)" "$(env_value MARIADB_CONTAINER_NAME cxapp-mariadb)" \
+    mariadb -u "$(env_value DB_USER cxapp_app)" \
     -e "CREATE DATABASE IF NOT EXISTS \`$database\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;" >/dev/null
+}
+
+trades_database_exists() {
+  database=$(env_value TRADES_DB_NAME trades_db)
+  docker exec -e MYSQL_PWD="$(env_value DB_PASSWORD)" "$(env_value MARIADB_CONTAINER_NAME cxapp-mariadb)" \
+    mariadb --batch --skip-column-names -u "$(env_value DB_USER cxapp_app)" \
+    -e "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME='${database}';" \
+    | grep -qx 1
+}
+
+drop_trades_database() {
+  database=$(env_value TRADES_DB_NAME trades_db)
+  case "$database" in
+    cxsun_master_db|codexsun_db) echo "Protected CXApp database cannot be dropped by Trades: $database" >&2; exit 78 ;;
+    ""|*[!A-Za-z0-9_]*) echo "Unsafe TRADES_DB_NAME." >&2; exit 78 ;;
+  esac
+  docker exec -e MYSQL_PWD="$(env_value DB_PASSWORD)" "$(env_value MARIADB_CONTAINER_NAME cxapp-mariadb)" \
+    mariadb -u "$(env_value DB_USER cxapp_app)" -e "DROP DATABASE \`$database\`;" >/dev/null
 }
 
 compose() { docker compose --env-file "$DEPLOY_ENV" -f "$CONTAINER_DIR/docker-compose.yml" "$@"; }

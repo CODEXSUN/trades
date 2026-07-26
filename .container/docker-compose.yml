@@ -10,9 +10,9 @@ x-api-env: &api-env
   PLATFORM_WEB_ORIGINS: ${PLATFORM_WEB_ORIGINS:-}
   PLATFORM_WEB_HEALTH_URL: ${PLATFORM_WEB_HEALTH_URL:-http://trades-web:80}
   DB_DRIVER: mariadb
-  DB_HOST: codexsun-mariadb
+  DB_HOST: ${DB_HOST:-cxapp-mariadb}
   DB_PORT: 3306
-  DB_USER: ${DB_USER:-codexsun_app}
+  DB_USER: ${DB_USER:-cxapp_app}
   DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
   TRADES_DB_NAME: ${TRADES_DB_NAME:-trades_db}
   # Required by Core's public package schema; this is not a physical Trades database.
@@ -35,7 +35,7 @@ x-api-env: &api-env
   STORAGE_PUBLIC_ROOT: /storage/public
   ENABLE_SINGLE_CLIENT: ${ENABLE_SINGLE_CLIENT:-1}
   CLIENT_CORPORATE_ID: ${CLIENT_CORPORATE_ID:-TRADES}
-  CLIENT_DOMAIN: ${CLIENT_DOMAIN:-app.trades.in}
+  CLIENT_DOMAIN: ${CLIENT_DOMAIN:-trades.codexsun.com}
   CLIENT_NAME: ${CLIENT_NAME:-Trades}
   CLIENT_SLUG: ${CLIENT_SLUG:-trades}
   CLIENT_ADMIN_NAME: ${CLIENT_ADMIN_NAME:-}
@@ -48,9 +48,6 @@ x-api-env: &api-env
   SOFTWARE_ADMIN_NAME: ${SOFTWARE_ADMIN_NAME:-}
   SOFTWARE_ADMIN_EMAIL: ${SOFTWARE_ADMIN_EMAIL:-}
   SOFTWARE_ADMIN_PASSWORD: ${SOFTWARE_ADMIN_PASSWORD:-}
-  CLIENT_ADMIN_NAME: ${CLIENT_ADMIN_NAME:-}
-  CLIENT_ADMIN_EMAIL: ${CLIENT_ADMIN_EMAIL:-}
-  CLIENT_ADMIN_PASSWORD: ${CLIENT_ADMIN_PASSWORD:-}
 
 services:
   storage-init:
@@ -62,7 +59,7 @@ services:
         "mkdir -p /storage/app /storage/public /storage/tenants /storage/backups/database && chown -R 1000:1000 /storage"
       ]
     volumes: ["trades-data:/storage"]
-    networks: [edge]
+    networks: [backend]
     restart: "no"
 
   platform-migrate:
@@ -78,7 +75,7 @@ services:
     environment:
       <<: *api-env
     volumes: ["trades-data:/storage"]
-    networks: [edge]
+    networks: [backend]
 
   trades-api:
     build:
@@ -99,7 +96,7 @@ services:
     ports:
       - "${TRADES_BIND_ADDRESS:-127.0.0.1}:${PLATFORM_API_HOST_PORT:-18070}:${PLATFORM_API_PORT:-7070}"
     volumes: ["trades-data:/storage"]
-    networks: [edge]
+    networks: [backend]
 
   trades-web:
     build:
@@ -117,25 +114,16 @@ services:
       trades-api: { condition: service_healthy }
     ports:
       - "${TRADES_BIND_ADDRESS:-127.0.0.1}:${PLATFORM_WEB_HOST_PORT:-18080}:80"
-    labels:
-      traefik.enable: "true"
-      traefik.docker.network: ${CODEXSUN_EDGE_NETWORK:-codexsun-network}
-      traefik.http.routers.trades-web.rule: "Host(`${TRADES_WEB_HOST:-app.trades.in}`)"
-      traefik.http.routers.trades-web.entrypoints: websecure
-      traefik.http.routers.trades-web.tls: "true"
-      traefik.http.routers.trades-web.tls.certresolver: letsencrypt
-      traefik.http.routers.trades-web.middlewares: trades-security-headers
-      traefik.http.services.trades-web.loadbalancer.server.port: "80"
-      traefik.http.middlewares.trades-security-headers.headers.stsseconds: "31536000"
-      traefik.http.middlewares.trades-security-headers.headers.stsincludesubdomains: "true"
-      traefik.http.middlewares.trades-security-headers.headers.stspreload: "true"
-    networks: [edge]
+    networks: [backend, edge]
 
 volumes:
   trades-data:
     name: ${TRADES_DATA_VOLUME:-trades-platform-data}
 
 networks:
+  backend:
+    name: ${CODEXSUN_BACKEND_NETWORK:-cxapp-network}
+    external: true
   edge:
-    name: ${CODEXSUN_EDGE_NETWORK:-codexsun-network}
+    name: ${CODEXSUN_EDGE_NETWORK:-cxapp-edge}
     external: true

@@ -7,8 +7,9 @@ Media Docker, migration, install, update, or VPS commands.
 
 - Trades owns only `trades-api`, `trades-web`, its migration job, Trades images,
   `trades-platform-data`, and its owned master/client databases.
-- `codexsun-mariadb`, `codexsun-redis`, `codexsun-media`, their volumes, Traefik, and
-  `codexsun-network` are shared infrastructure owned by the CODEXSUN repository.
+- `cxapp-mariadb`, `cxapp-redis`, `cxapp-media`, `cxapp-cloudflared`, their
+  volumes, `cxapp-network`, and `cxapp-edge` are shared infrastructure owned by
+  the CODEXSUN repository.
 - Trades connects to the existing shared layer. It must never create, stop, rebuild, remove,
   or prune that layer.
 
@@ -16,8 +17,9 @@ Media Docker, migration, install, update, or VPS commands.
 
 Before deployment, verify Docker Engine and Compose v2, sibling `framework`, `ui`, and `core`
 repositories, a protected CODEXSUN infrastructure environment file, the existing
-`codexsun-network`, and healthy shared MariaDB/Redis/Media containers. On a VPS, also verify DNS for
-`app.trades.in`, Traefik, TCP 80/443, and a current database backup or an explicitly recorded
+`cxapp-network`, `cxapp-edge`, and healthy shared MariaDB/Redis/Media containers.
+On a VPS, also verify the Cloudflare route for `trades.codexsun.com`, connector
+readiness, and a current database backup or an explicitly recorded
 empty-install marker.
 
 Keep `TRADES_DB_FRESH_ON_START=0`, `TRADES_ALLOW_PRODUCTION_DB_RESET=0`, and live restore
@@ -29,9 +31,8 @@ it from the CODEXSUN infrastructure owner.
 The installer builds and replaces only the Trades application services, runs Trades-owned
 forward migrations/seeds, connects them to the existing network, and runs the stack smoke test:
 
-```bash
-bash install.sh
-```
+Use `bash setup.sh` for installation and `bash update.sh` for later releases.
+`install.sh` is a compatibility alias for setup.
 
 ## Prohibited operations
 

@@ -2,7 +2,8 @@
 
 The Trades application and orchestration repository.
 
-Standalone container install: `bash install.sh`. See `.container/README.md` for owned ports,
+Standalone container install: `bash setup.sh`; later releases use `bash update.sh`.
+See `.container/README.md` for owned ports,
 volumes, fixed client data, and production routing.
 
 This project plays the same role as a Laravel application: it installs the framework and selected application packages, provides deployment configuration, builds the composed stack, and starts the runtime. Business implementation stays in its owning package.

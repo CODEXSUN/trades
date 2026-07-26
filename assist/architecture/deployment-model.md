@@ -67,10 +67,10 @@ canonical CORS origin for direct API clients. Wildcard credentialed CORS is proh
 
 ## Repository-owned container stack
 
-Trades owns `.container/` and `install.sh`. Its independent stack publishes API host port
+Trades owns `.container/`, `setup.sh`, and `update.sh`. Its independent stack publishes API host port
 `18070` and Web host port `18080`. MariaDB, Redis, and media are provided once by CODEXSUN on
-`codexsun-network`. The Web
-router owns `app.trades.in`. The single-client seeder provisions the internal Core-compatible
+`cxapp-network`; Web additionally joins `cxapp-edge`. Cloudflare maps
+`trades.codexsun.com` to `http://trades-web:80`. The single-client seeder provisions the internal Core-compatible
 context in the same Trades database; Billing, Mail, CMS, and Sites do not participate in this
 lifecycle.
 

@@ -2,17 +2,34 @@
 
 ## Version State
 
-Current version: 1.0.7
+Current version: 1.0.8
 
-Release tag: v-1.0.7
+Release tag: v-1.0.8
 
-Changelog label: v 1.0.7
+Changelog label: v 1.0.8
 
 This changelog starts with Trades as an independent single-client application composed from
 `framework + ui + core + platform`. Source-project and sibling-product release histories are not
 Trades release history.
 
 New entries must keep database-facing work and application code work separate.
+
+## v-1.0.8
+
+### [v 1.0.8] 2026-07-26 3:08 pm - Standardize Trades container deployment workflow
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Standardized Trades setup and update entrypoints with safe application-only container lifecycle
+  and deployment documentation.
+- Connected Trades API and migration services to shared CXApp infrastructure and exposed Web
+  through the Cloudflare edge network at `trades.codexsun.com`.
+- Preserved the fixed single-client database and Trades-owned storage boundaries.
+- Bumped repository version to 1.0.8.
 
 ## v-1.0.7
 
