@@ -20,28 +20,17 @@ const app = await createApp();
 
 try {
   const [tenants] = await connection.query<TenantRow[]>(
-    "SELECT uuid, tenant_code, db_name FROM tenants WHERE status='active' ORDER BY id LIMIT 5"
-  );
-  assert.equal(tenants.length, 5, "Five active tenants are required for the access isolation E2E.");
-  const results: Array<{ tenant: string; records: number }> = [];
-  for (const tenant of tenants) results.push(await exerciseTenant(tenant));
-
-  const first = tenants[0]!;
-  const second = tenants[1]!;
-  const crossed = await request(
-    first,
-    "GET",
-    "/application/access/users",
-    undefined,
-    second.db_name
+    "SELECT uuid, tenant_code, db_name FROM tenants WHERE status='active' ORDER BY id"
   );
   assert.equal(
-    crossed.statusCode,
-    403,
-    "A tenant token was accepted against another tenant database."
+    tenants.length,
+    1,
+    "Trades must provision exactly one active client for the access E2E."
   );
+  const client = tenants[0]!;
+  const result = await exerciseTenant(client);
 
-  console.log("Tenant access five-tenant E2E passed", { results, tenants: tenants.length });
+  console.log("Single-client access E2E passed", { client: client.tenant_code, result });
 } finally {
   await app.close();
   await closeAllTenantDatabases();

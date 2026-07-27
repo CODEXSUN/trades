@@ -36,6 +36,11 @@ Do not continue if backup freshness, restore status, the application target, or 
 
 Billing, Mail, Ecommerce, and Sites do not participate in Trades database lifecycle.
 
+Because Platform and the fixed client share `TRADES_DB_NAME`, current Platform `access_users`,
+`access_roles`, and `access_permissions` tables are not legacy tenant tables and must never be
+renamed to `users`, `roles`, or `permissions`. Owner-local tenant migrations repair legacy columns
+on those tenant tables when upgrading an already-affected database.
+
 Ownership:
 
 - Platform infrastructure and internal client runtime: `src/platform/api/src/modules/`

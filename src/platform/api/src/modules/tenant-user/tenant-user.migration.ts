@@ -20,10 +20,18 @@ export async function migrateTenantUserModule(database: Kysely<TenantDatabase>) 
   ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
     )
     .execute(database);
-  if (!(await columnExists(database, "users", "is_protected"))) {
-    await sql
-      .raw("ALTER TABLE users ADD COLUMN is_protected BOOLEAN NOT NULL DEFAULT FALSE AFTER status")
-      .execute(database);
+  for (const [column, definition] of [
+    ["password_hash", "VARCHAR(255) NOT NULL DEFAULT '' AFTER email"],
+    ["role", "VARCHAR(80) NOT NULL DEFAULT 'user' AFTER password_hash"],
+    ["is_protected", "BOOLEAN NOT NULL DEFAULT FALSE AFTER status"]
+  ] as const) {
+    if (!(await columnExists(database, "users", column))) {
+      await sql.raw(`ALTER TABLE users ADD COLUMN \`${column}\` ${definition}`).execute(database);
+    }
+  }
+  if (await columnExists(database, "users", "role_key")) {
+    await sql.raw("UPDATE users SET role=role_key WHERE role_key<>''").execute(database);
+    await sql.raw("ALTER TABLE users DROP COLUMN role_key").execute(database);
   }
   await database
     .insertInto("schema_migrations")

@@ -53,6 +53,11 @@ assertOrdered("src/platform/api/src/modules/tenant/tenant.seed.ts", [
   "seedTenantUserRoleModule(",
   "seedTenantRolePermissionModule("
 ]);
+assertAbsent("src/platform/api/src/modules/tenant/tenant.migration.ts", [
+  '["access_users", "users"]',
+  '["access_roles", "roles"]',
+  '["access_permissions", "permissions"]'
+]);
 assertOrdered("src/platform/api/src/database/tenant-app-database.ts", [
   "migrateBankAccountModule(",
   "migrateDepositModule(",
@@ -102,6 +107,16 @@ function assertOrdered(file, tokens) {
     if (index < 0) throw new Error(`${file}: missing lifecycle token ${token}`);
     if (index <= previous) throw new Error(`${file}: lifecycle token out of order: ${token}`);
     previous = index;
+  }
+}
+
+function assertAbsent(file, tokens) {
+  const absolute = resolve(root, file);
+  const content = readFileSync(absolute, "utf8");
+  for (const token of tokens) {
+    if (content.includes(token)) {
+      throw new Error(`${file}: Platform-owned runtime table must not be renamed: ${token}`);
+    }
   }
 }
 

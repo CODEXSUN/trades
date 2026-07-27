@@ -170,9 +170,6 @@ const tenantRuntimeTableRenames = [
   ["tenant_permissions", "permissions"],
   ["tenant_role_permissions", "role_permissions"],
   ["tenant_user_roles", "user_roles"],
-  ["access_users", "users"],
-  ["access_roles", "roles"],
-  ["access_permissions", "permissions"],
   ["access_role_permissions", "role_permissions"],
   ["access_user_roles", "user_roles"]
 ] as const;

@@ -14,6 +14,9 @@ export async function migrateTenantRoleModule(database: Kysely<TenantDatabase>) 
     if (!(await exists(database, column)))
       await sql.raw(`ALTER TABLE roles ADD COLUMN \`${column}\` ${definition}`).execute(database);
   }
+  if (await exists(database, "permission_keys_json")) {
+    await sql.raw("ALTER TABLE roles DROP COLUMN permission_keys_json").execute(database);
+  }
   await database
     .insertInto("schema_migrations")
     .ignore()

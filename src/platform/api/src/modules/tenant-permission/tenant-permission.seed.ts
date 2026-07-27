@@ -62,12 +62,22 @@ const tradesSeeds = [
     .join(" · ")
 }));
 const seeds = [...applicationSeeds, ...tradesSeeds];
+const platformOnlyPermissionKeys = [
+  "platform.access.manage",
+  "platform.entitlements.manage",
+  "platform.plans.manage",
+  "platform.tenants.manage"
+] as const;
 export async function seedTenantPermissionModule(database: Kysely<TenantDatabase>) {
   const removedPermissions = await database
     .selectFrom("permissions")
     .select("id")
     .where((expression) =>
-      expression.or([expression("key", "like", "crm.%"), expression("key", "like", "frappe.%")])
+      expression.or([
+        expression("key", "like", "crm.%"),
+        expression("key", "like", "frappe.%"),
+        expression("key", "in", platformOnlyPermissionKeys)
+      ])
     )
     .execute();
   if (removedPermissions.length) {
