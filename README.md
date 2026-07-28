@@ -1,62 +1,62 @@
-# Trades
+# CODEXSUN Trades
 
-The Trades application and orchestration repository.
+Trades is a public, single-client business stack for CXApp. It owns banking, deposits, payments,
+commission calculation, reconciliation, reports, and their API/web contracts.
 
-Standalone container install: `bash setup.sh`; later releases use `bash update.sh`.
-See `.container/README.md` for owned ports,
-volumes, fixed client data, and production routing.
+Trades is not an executable application host. CXApp owns authentication, client scope, database
+providers, audit transport, HTTP/Web processes, health, queues, configuration, and deployment.
 
-This project plays the same role as a Laravel application: it installs the framework and selected application packages, provides deployment configuration, builds the composed stack, and starts the runtime. Business implementation stays in its owning package.
+## Package exports
 
-## Repository guidance
+- `@codexsun/trades/api` — route registration, database lifecycle, module metadata, and host types.
+- `@codexsun/trades/web` — Trades workspaces and configurable browser transport.
+- `@codexsun/trades/web/cxapp` — lazy CXApp workspace contribution.
+- `@codexsun/trades/stack` — immutable client-mode stack metadata and permission keys.
 
-Read `assist/AGENT-GUIDE.md` before changing this repository. The current Trades repository
-workspace map, ownership boundaries, migration/seed order, environment contract, versioning,
-and release workflow are documented under `assist/`.
+## CXApp integration
 
-`devkit` is a standalone developer application and is not part of the Platform runtime stack.
+CXApp composes the package through its public exports:
 
-## Installed stack
-
-- `@codexsun/framework`
-- `@codexsun/ui`
-- `@codexsun/core`
-  Trades composes only `framework + ui + core + platform`. Billing, Mail, Ecommerce, and Sites
-  are intentionally not installed in this sibling application.
-
-## Development
-
-```sh
-npm install
-npm run setup
-npm run dev
+```ts
+import {
+  bootstrapTradesDatabase,
+  registerTradesApiForHost,
+  tradesStackContribution
+} from "@codexsun/trades/api";
+import { tradesWebBundle } from "@codexsun/trades/web/cxapp";
 ```
 
-The repositories must be sibling folders under the same parent directory. `npm run setup` installs each local package serially, and the lockfiles preserve the resolved development graph. No package is fetched from a registry during local composition.
+The CXApp adapter supplies a trusted client ID, request database, principal authorization, and audit
+sink. Trades never reads browser-selected database or client headers.
 
-The default development runtime is:
+## Repository structure
 
-- API: `http://127.0.0.1:7070`
-- Web: `http://127.0.0.1:7080`
-
-Trades is a single-client application. Startup provisions the one client configured through
-`CLIENT_*`; login asks only for email and password, and the web application publishes no tenant,
-Super Admin, or staff-admin selection surfaces.
-
-Platform is the only runtime application. Framework, UI, and Core are linked sibling packages
-compiled before Platform.
-
-Use `npm run dev:api` or `npm run dev:web` to start one side only. Ports are deployment configuration and can be changed through environment variables without changing application packages.
+```text
+src/
+  api/src/
+    app.ts
+    database/
+    modules/
+    request-context.ts
+    stack.ts
+  web/src/
+    cxapp.tsx
+    modules/
+    shared/
+tools/
+assist/
+```
 
 ## Verification
 
-```sh
-npm run build
-npm run check
-npm run test:product-stacks
-npm run test:e2e:composed-runtime
+```powershell
+npm.cmd install
+npm.cmd run check
+npm.cmd pack --dry-run
 ```
 
-Repository release helpers are `npm run version:show`, `npm run check:versions`,
-`npm run version:bump -- --dry-run`, the equivalent `npm run version-bump -- --dry-run`, and
-`npm run github:now -- --dry-run`.
+`tools/` intentionally contains only `version-bump.mjs` and `github-now.mjs`.
+
+Use `npm.cmd run version-bump -- --dry-run` to preview the next patch version. Run
+`npm.cmd run github:now -- --dry-run` to inspect the release commit before the explicit command
+pulls, stages, commits, and pushes the repository.

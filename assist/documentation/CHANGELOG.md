@@ -2,11 +2,11 @@
 
 ## Version State
 
-Current version: 1.0.8
+Current version: 1.0.9
 
-Release tag: v-1.0.8
+Release tag: v-1.0.9
 
-Changelog label: v 1.0.8
+Changelog label: v 1.0.9
 
 This changelog starts with Trades as an independent single-client application composed from
 `framework + ui + core + platform`. Source-project and sibling-product release histories are not
@@ -14,13 +14,35 @@ Trades release history.
 
 New entries must keep database-facing work and application code work separate.
 
+## v-1.0.9
+
+### [v 1.0.9] 2026-07-29 12:16 am - Compose Trades as a fixed-client CXApp package
+
+#### Database Changes
+
+- Database update: Yes.
+- Preserved Trades-owned `trades_` tables while making migrations forward-compatible with shared
+  Platform access-control tables and the composed lifecycle journal.
+
+#### App Codebase Changes
+
+- Consolidated Trades into a public CXApp package contract with fixed-client stack metadata,
+  database lifecycle exports, API contribution, and owner-rendered web workspace.
+- Removed obsolete standalone deployment and copied Assist surfaces now owned by the composing
+  runtime while retaining the Trades business modules.
+- Added fixed-client tenant access and composed stack verification.
+- Bumped repository version to 1.0.9.
+
 ## v-1.0.8
 
 ### [v 1.0.8] 2026-07-26 3:08 pm - Standardize Trades container deployment workflow
 
 #### Database Changes
 
-- Database update: No.
+- Database update: Yes.
+- Added forward-compatible renames for every Trades-owned business table, tagged Trades migration
+  history in the shared `schema_migrations` journal, and preserved shared access-control tables
+  under their existing Platform ownership.
 
 #### App Codebase Changes
 
@@ -29,6 +51,8 @@ New entries must keep database-facing work and application code work separate.
 - Connected Trades API and migration services to shared CXApp infrastructure and exposed Web
   through the Cloudflare edge network at `trades.codexsun.com`.
 - Preserved the fixed single-client database and Trades-owned storage boundaries.
+- Added a strict table-prefix check and CXApp-composed MariaDB migration, seed, API, and schema
+  verification for the `trades_` ownership contract.
 - Bumped repository version to 1.0.8.
 
 ## v-1.0.7
