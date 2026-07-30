@@ -26,11 +26,17 @@ export default [
   },
   js.configs.recommended,
   {
-    files: ["tools/**/*.mjs"],
+    files: ["**/*.mjs"],
     languageOptions: {
       globals: {
+        AbortSignal: "readonly",
+        Buffer: "readonly",
         console: "readonly",
-        process: "readonly"
+        fetch: "readonly",
+        process: "readonly",
+        setTimeout: "readonly",
+        URL: "readonly",
+        URLSearchParams: "readonly"
       }
     }
   },

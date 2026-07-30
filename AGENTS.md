@@ -1,5 +1,5 @@
 # Repository Instructions
 
-Read `assist/README.md`, then inspect the complete owning module or composition point before
-changing this repository. Keep Trades as a compact package under `src/`; do not recreate an
-application host, tenant foundation, or private sibling imports.
+Read `assist/AGENT-GUIDE.md` completely before changing this repository. Then read
+`assist/governance/rules.md`, `assist/documentation/project-inventory.md`, and the
+closest owning module or composition point.

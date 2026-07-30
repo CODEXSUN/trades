@@ -1,91 +1,78 @@
 {
-  "name": "@codexsun/trades",
-  "version": "1.0.9",
-  "private": false,
+  "name": "trades",
+  "version": "1.0.17",
+  "private": true,
   "packageManager": "npm@12.0.1",
-  "description": "CODEXSUN Trades pluggable CXApp business stack",
+  "description": "trades orchestrator",
   "type": "module",
-  "files": [
-    "src/web/src",
-    "dist/api",
-    "README.md",
-    "LICENSE"
+  "workspaces": [
+    "packages/*",
+    "src/platform/*",
+    "tools/*"
   ],
-  "exports": {
-    ".": {
-      "types": "./dist/api/stack.d.ts",
-      "default": "./dist/api/stack.js"
-    },
-    "./api": {
-      "types": "./dist/api/index.d.ts",
-      "default": "./dist/api/index.js"
-    },
-    "./host": {
-      "types": "./dist/api/app.d.ts",
-      "default": "./dist/api/app.js"
-    },
-    "./database": {
-      "types": "./dist/api/database/index.d.ts",
-      "default": "./dist/api/database/index.js"
-    },
-    "./stack": {
-      "types": "./dist/api/stack.d.ts",
-      "default": "./dist/api/stack.js"
-    },
-    "./web": "./src/web/src/index.ts",
-    "./web/cxapp": "./src/web/src/cxapp.tsx"
-  },
   "scripts": {
-    "clean": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\"",
-    "build": "npm run clean && tsc -p tsconfig.api.json",
-    "typecheck": "tsc -p tsconfig.api.json --noEmit && tsc -p tsconfig.web.json --noEmit",
-    "lint": "eslint src tools --ext .ts,.tsx,.mjs",
-    "check": "npm run format:check && npm run check:table-prefixes && npm run lint && npm run typecheck && npm run build",
-    "check:table-prefixes": "node tools/check-table-prefixes.mjs",
-    "version:bump": "node tools/version-bump.mjs",
-    "version-bump": "node tools/version-bump.mjs",
-    "github:now": "node tools/github-now.mjs",
+    "preinstall": "node tools/enforce-root-install.mjs",
+    "postinstall": "node tools/clean-workspace-artifacts.mjs && node tools/check-root-node-modules.mjs",
+    "setup": "node tools/install-stack.mjs",
+    "dev": "node tools/dev-stack.mjs",
+    "dev:api": "node tools/preflight.mjs platform-api",
+    "dev:web": "node tools/preflight.mjs platform-web",
+    "clean": "node tools/clean-root-dist.mjs && node tools/clean-workspace-artifacts.mjs",
+    "build": "npm run clean && node tools/stack-command.mjs build",
+    "typecheck": "node tools/stack-command.mjs typecheck",
+    "lint": "node tools/stack-command.mjs lint",
+    "check": "npm run check:text-encoding && npm run check:repository-boundary && npm run dependencies:check && npm run check:module-boundaries && npm run check:database-lifecycle && npm run typecheck && npm run lint && npm test",
+    "check:text-encoding": "node tools/check-env-encoding.mjs",
+    "check:env-encoding": "npm run check:text-encoding",
+    "check:repository-boundary": "node tools/check-repository-boundary.mjs",
+    "check:module-boundaries": "node tools/check-module-boundaries.mjs",
+    "check:core-boundaries": "node tools/check-module-boundaries.mjs core",
+    "check:database-lifecycle": "node tools/check-database-lifecycle.mjs",
+    "dependencies:clean": "node tools/clean-workspace-artifacts.mjs",
+    "dependencies:check": "node tools/check-root-node-modules.mjs",
+    "test": "npm test --workspace @codexsun/framework && npm run test:exports --workspace @codexsun/framework && npm run package:check --workspace @codexsun/framework",
+    "test:e2e:runtime": "node tools/e2e/runtime-smoke.e2e.mjs",
+    "version:show": "node tools/repository-release.mjs version:show",
+    "version:bump": "node tools/repository-release.mjs version:bump",
+    "version-bump": "node tools/repository-release.mjs version:bump",
+    "check:versions": "node tools/repository-release.mjs check:versions",
+    "github:now": "node tools/repository-release.mjs github:now",
+    "stack:impact": "node tools/stack-impact.mjs",
+    "stack:plan": "node tools/stack-release-plan.mjs",
     "format": "prettier . --write",
     "format:check": "prettier . --check",
-    "prepack": "npm run build"
-  },
-  "dependencies": {
-    "@tanstack/react-query": "^5.100.10",
-    "@tanstack/react-table": "^8.21.3",
-    "date-fns": "^4.4.0",
-    "fastify": "^5.2.1",
-    "kysely": "^0.29.0",
-    "lucide-react": "^1.22.0",
-    "sonner": "^2.0.7",
-    "zod": "^4.4.3"
-  },
-  "peerDependencies": {
-    "@codexsun/framework": ">=1.0.47",
-    "@codexsun/ui": ">=1.0.48",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "db:migrate": "tsx src/platform/api/src/database/db-cli.ts migrate",
+    "db:migrations:list": "tsx src/platform/api/src/database/db-cli.ts migrations:list",
+    "db:seed": "tsx src/platform/api/src/database/db-cli.ts seed",
+    "db:drop": "tsx src/platform/api/src/database/db-cli.ts drop",
+    "dbmigrate:fresh": "tsx src/platform/api/src/database/db-cli.ts fresh",
+    "github:ssh-key": "node tools/github-ssh-key.mjs",
+    "env:jwt-secret": "node tools/env-jwt-secret.mjs"
   },
   "devDependencies": {
-    "@codexsun/framework": "file:../framework",
-    "@codexsun/ui": "file:../ui",
-    "@eslint/js": "^10.0.1",
+    "@eslint/js": "^9.17.0",
+    "@tailwindcss/vite": "^4.3.1",
     "@types/node": "^26.1.1",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
     "@typescript-eslint/eslint-plugin": "^8.18.1",
     "@typescript-eslint/parser": "^8.18.1",
+    "@vitejs/plugin-react": "^6.0.3",
     "eslint": "^10.8.0",
     "prettier": "^3.4.2",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.3.1",
+    "tsx": "^4.19.2",
     "typescript": "^7.0.2",
-    "typescript-eslint-compiler": "npm:typescript@6.0.3"
+    "typescript-eslint-compiler": "npm:typescript@6.0.3",
+    "vite": "^8.1.5"
   },
   "engines": {
     "node": ">=26.5.0",
     "npm": ">=12.0.1"
   },
   "allowScripts": {
-    "esbuild": true
+    "bullmq": false,
+    "esbuild": true,
+    "msgpackr-extract": false
   }
 }

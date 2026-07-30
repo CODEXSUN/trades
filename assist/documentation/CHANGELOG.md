@@ -1,119 +1,39 @@
-# Trades Changelog
+# Changelog
 
-## Version State
+Current version: 1.0.17
+Release tag: v-1.0.17
+Changelog label: v 1.0.17
 
-Current version: 1.0.9
+## Unreleased - Trades conversion
 
-Release tag: v-1.0.9
+- Renamed the standalone application and deployment surface to Trades.
+- Retained Platform local users, roles, permissions, and assignments.
+- Composed Deposit, Payment, Bank Account, and Commission from migration through UI.
+- Removed the copied external sales and identity integration features.
 
-Changelog label: v 1.0.9
+## v-1.0.17
 
-This changelog starts with Trades as an independent single-client application composed from
-`framework + ui + core + platform`. Source-project and sibling-product release histories are not
-Trades release history.
-
-New entries must keep database-facing work and application code work separate.
-
-## v-1.0.9
-
-### [v 1.0.9] 2026-07-29 12:16 am - Compose Trades as a fixed-client CXApp package
+### [v 1.0.17] 2026-07-30 11:22 pm - Trades conversion and CRUD stabilization
 
 #### Database Changes
 
 - Database update: Yes.
-- Preserved Trades-owned `trades_` tables while making migrations forward-compatible with shared
-  Platform access-control tables and the composed lifecycle journal.
+- Added and seeded the complete Trades permissions used by Bank Account, Deposit,
+  Payment, ledger, reconciliation, and Commission lifecycle operations.
+- Assigned the Trades business permissions to the local Platform roles.
+- Verified the ordered Platform identity and Trades module migrations against
+  `trades_db`.
 
 #### App Codebase Changes
 
-- Consolidated Trades into a public CXApp package contract with fixed-client stack metadata,
-  database lifecycle exports, API contribution, and owner-rendered web workspace.
-- Removed obsolete standalone deployment and copied Assist surfaces now owned by the composing
-  runtime while retaining the Trades business modules.
-- Added fixed-client tenant access and composed stack verification.
-- Bumped repository version to 1.0.9.
-
-## v-1.0.8
-
-### [v 1.0.8] 2026-07-26 3:08 pm - Standardize Trades container deployment workflow
-
-#### Database Changes
-
-- Database update: Yes.
-- Added forward-compatible renames for every Trades-owned business table, tagged Trades migration
-  history in the shared `schema_migrations` journal, and preserved shared access-control tables
-  under their existing Platform ownership.
-
-#### App Codebase Changes
-
-- Standardized Trades setup and update entrypoints with safe application-only container lifecycle
-  and deployment documentation.
-- Connected Trades API and migration services to shared CXApp infrastructure and exposed Web
-  through the Cloudflare edge network at `trades.codexsun.com`.
-- Preserved the fixed single-client database and Trades-owned storage boundaries.
-- Added a strict table-prefix check and CXApp-composed MariaDB migration, seed, API, and schema
-  verification for the `trades_` ownership contract.
-- Bumped repository version to 1.0.8.
-
-## v-1.0.7
-
-### [v 1.0.7] 2026-07-25 9:17 am - Standardize repository LF line endings
-
-#### Database Changes
-
-- Database update: No.
-
-#### App Codebase Changes
-
-- Standardized detected repository text files on LF through a repository-owned `.gitattributes`
-  policy, preventing Windows Git from repeatedly warning about LF-to-CRLF conversion.
-- Bumped repository version to 1.0.7.
-
-## v-1.0.6
-
-### [Unreleased] 2026-07-24 - Add bank accounts and reconciliation-ready statements
-
-#### Database Changes
-
-- Added module-owned bank account and debit/credit ledger tables, transaction bank links, legacy
-  bank backfill, opening entries, and Deposit/Payment ledger backfill.
-- Replaced fixed Deposit/Payment commission summary tables with Commission-owned common percentage
-  variants, transaction confirmation entries, and normalized percentage/amount lines.
-
-#### App Codebase Changes
-
-- Added the Banking desk, multiple bank-account CRUD, individual statements, manual cash entries,
-  internal transfers, reconciliation controls, and persisted autocomplete with popup creation in
-  Deposit and Payment forms.
-- Added separate Deposit Commission and Withdrawal Commission desk pages with date-range filters,
-  dynamic percentage columns, amount and commission totals, editable rates, and settlement
-  confirmation that removes confirmed rows from the unsettled lists.
-- Standardized Deposit, Payment, Commission, and Bank Statement date columns as `dd-MMM-yyyy`.
-- Added spreadsheet-style cell borders to Deposit, Payment, and Commission list tables.
-- Added detail-only browser print/PDF reports for filtered Deposits, Payments, Bank Accounts,
-  individual Bank Statements, and date-filtered Commission lists.
-
-### [v 1.0.6] 2026-07-24 10:39 am - Establish Trades single-client transaction application
-
-#### Database Changes
-
-- Database update: Yes.
-- Added the fixed-client Platform, access, activity, queue, storage, Deposit, Payment, and Core
-  migration and repeatable seed lifecycle in the single `TRADES_DB_NAME` database.
-- Kept Deposit and Payment persistence module-owned, with commission data stored separately and no
-  tenant-selectable database boundary.
-
-#### App Codebase Changes
-
-- Established the standalone Trades API and Web composition using only Framework, UI, Core, and
-  Trades-owned Platform modules; Billing, Mail, Sites, Ecommerce, TechMedia, and CODEXSUN remain
-  sibling products rather than runtime dependencies.
-- Added fixed-client authentication, Trades and Application desks, transaction-only Deposit and
-  Payment workspaces, operational overview, and Core organisation/master composition.
-- Added environment validation, root-only npm workspace tooling, module/database boundary checks,
-  production builds, product-stack tests, and focused composed-runtime and trade-detail E2E flows.
-- Added standalone Docker/Traefik installation on ports `18070` and `18080`, with safe forward
-  migrations, smoke verification, and strict ownership of only Trades application containers.
-- Added authoritative Assist, repository inventory, deployment, migration, environment, and release
-  documentation for the one-client architecture.
-- Bumped repository version to 1.0.6.
+- Bumped repository version to 1.0.17.
+- Corrected the Trades web client base URL to route requests through
+  `/api/platform`.
+- Removed the Frappe-dependent authentication path in favor of local Platform
+  authentication and development auto-login.
+- Stabilized the Vite React Refresh preamble used by the development loader.
+- Verified create, list, read, update, activate, deactivate, settlement, statement,
+  and force-delete behavior for Bank Accounts, Deposits, Payments, ledger entries,
+  and Commissions.
+- Confirmed that the CRUD verification removed its temporary records and restored
+  the edited Commission variant.
