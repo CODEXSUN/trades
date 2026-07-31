@@ -21,6 +21,10 @@ export async function migratePaymentModule(database: Kysely<TradesDatabase>) {
         amount DECIMAL(18,2) NOT NULL,
         reference VARCHAR(180) NULL,
         status VARCHAR(24) NOT NULL DEFAULT 'active',
+        verified_at DATETIME NULL,
+        verified_by VARCHAR(190) NULL,
+        settled_at DATETIME NULL,
+        settled_by VARCHAR(190) NULL,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY trades_payments_uuid_unique (uuid),
@@ -38,7 +42,25 @@ export async function migratePaymentModule(database: Kysely<TradesDatabase>) {
     "trades_payments_bank_account_index",
     "trades_payments_bank_account_fk"
   );
+  await ensureLifecycleColumns(database);
   await ensureOptionalDetailsAndUniqueTgCode(database);
+}
+
+async function ensureLifecycleColumns(database: Kysely<TradesDatabase>) {
+  for (const [column, definition] of [
+    ["verified_at", "DATETIME NULL"],
+    ["verified_by", "VARCHAR(190) NULL"],
+    ["settled_at", "DATETIME NULL"],
+    ["settled_by", "VARCHAR(190) NULL"]
+  ] as const) {
+    const existing = await sql<{ count: number | string }>`
+      SELECT COUNT(*) count FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='trades_payments' AND COLUMN_NAME=${column}
+    `.execute(database);
+    if (Number(existing.rows[0]?.count ?? 0) === 0) {
+      await sql.raw(`ALTER TABLE trades_payments ADD COLUMN ${column} ${definition}`).execute(database);
+    }
+  }
 }
 
 async function ensureOptionalDetailsAndUniqueTgCode(database: Kysely<TradesDatabase>) {

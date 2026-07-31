@@ -32,6 +32,8 @@ type EntryRow = {
   tg_code: string;
   transaction_date: Date | string;
   uuid: string;
+  verified_at: Date | string | null;
+  verified_by: string | null;
 };
 type LineRow = {
   amount: number | string;
@@ -49,10 +51,16 @@ export class CommissionRepository {
     filters: CommissionListFilters = {}
   ): Promise<CommissionList> {
     const variants = await this.variants();
+    const lifecycle = filters.lifecycle ?? "open";
     const entriesResult = await sql<EntryRow>`
-      SELECT id,uuid,direction,transaction_date,tg_code,name,reference,amount,settled_at,settled_by
+      SELECT id,uuid,direction,transaction_date,tg_code,name,reference,amount,
+        verified_at,verified_by,settled_at,settled_by
       FROM trades_commission_entries
-      WHERE direction=${direction} AND settled_at IS NULL
+      WHERE direction=${direction}
+        AND (${lifecycle}='all' OR (${lifecycle}='open' AND settled_at IS NULL)
+          OR (${lifecycle}='unverified' AND verified_at IS NULL AND settled_at IS NULL)
+          OR (${lifecycle}='verified' AND verified_at IS NOT NULL AND settled_at IS NULL)
+          OR (${lifecycle}='settled' AND settled_at IS NOT NULL))
         AND (${filters.dateFrom ?? ""}='' OR transaction_date>=${filters.dateFrom ?? ""})
         AND (${filters.dateTo ?? ""}='' OR transaction_date<=${filters.dateTo ?? ""})
       ORDER BY transaction_date DESC,id DESC
@@ -128,7 +136,15 @@ export class CommissionRepository {
   }
 
   async settle(direction: CommissionDirection, id: number, actorEmail: string) {
-    await sql`UPDATE trades_commission_entries SET settled_at=CURRENT_TIMESTAMP,settled_by=${actorEmail} WHERE id=${id} AND direction=${direction} AND settled_at IS NULL`.execute(
+    await sql`UPDATE trades_commission_entries SET settled_at=CURRENT_TIMESTAMP,settled_by=${actorEmail} WHERE id=${id} AND direction=${direction} AND verified_at IS NOT NULL AND settled_at IS NULL`.execute(
+      this.database
+    );
+    return this.findEntry(id, direction);
+  }
+
+  async verify(direction: CommissionDirection, id: number, actorEmail: string) {
+    await sql`UPDATE trades_commission_entries SET verified_at=CURRENT_TIMESTAMP,verified_by=${actorEmail}
+      WHERE id=${id} AND direction=${direction} AND verified_at IS NULL AND settled_at IS NULL`.execute(
       this.database
     );
     return this.findEntry(id, direction);
@@ -136,7 +152,7 @@ export class CommissionRepository {
 
   async findEntry(id: number, direction: CommissionDirection) {
     const result =
-      await sql<EntryRow>`SELECT id,uuid,direction,transaction_date,tg_code,name,reference,amount,settled_at,settled_by FROM trades_commission_entries WHERE id=${id} AND direction=${direction} LIMIT 1`.execute(
+      await sql<EntryRow>`SELECT id,uuid,direction,transaction_date,tg_code,name,reference,amount,verified_at,verified_by,settled_at,settled_by FROM trades_commission_entries WHERE id=${id} AND direction=${direction} LIMIT 1`.execute(
         this.database
       );
     if (!result.rows[0]) return null;
@@ -156,7 +172,7 @@ export async function syncCommissionSourceEntry(
   await sql`
     INSERT INTO trades_commission_entries (uuid,direction,source_record_id,transaction_date,tg_code,name,reference,amount)
     VALUES (${randomBytes(4).toString("hex")},${input.direction},${input.sourceRecordId},${input.date},${input.tgCode},${input.name},${input.reference},${input.amount})
-    ON DUPLICATE KEY UPDATE transaction_date=VALUES(transaction_date),tg_code=VALUES(tg_code),name=VALUES(name),reference=VALUES(reference),amount=VALUES(amount),settled_at=NULL,settled_by=NULL
+    ON DUPLICATE KEY UPDATE transaction_date=VALUES(transaction_date),tg_code=VALUES(tg_code),name=VALUES(name),reference=VALUES(reference),amount=VALUES(amount),verified_at=NULL,verified_by=NULL,settled_at=NULL,settled_by=NULL
   `.execute(database);
   const entry = await sql<{
     id: number;
@@ -221,7 +237,9 @@ function mapEntry(row: EntryRow, lines: LineRow[]): CommissionEntry {
     settledBy: row.settled_by,
     tgCode: row.tg_code,
     totalCommission: money(mappedLines.reduce((sum, line) => sum + line.amount, 0)),
-    uuid: row.uuid
+    uuid: row.uuid,
+    verifiedAt: row.verified_at ? new Date(row.verified_at).toISOString() : null,
+    verifiedBy: row.verified_by
   };
 }
 function toDate(value: Date | string) {

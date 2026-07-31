@@ -1,8 +1,8 @@
 # Changelog
 
-Current version: 1.0.19
-Release tag: v-1.0.19
-Changelog label: v 1.0.19
+Current version: 1.0.20
+Release tag: v-1.0.20
+Changelog label: v 1.0.20
 
 ## Unreleased - Trades conversion
 
@@ -10,6 +10,18 @@ Changelog label: v 1.0.19
 - Retained Platform local users, roles, permissions, and assignments.
 - Composed Deposit, Payment, Bank Account, and Commission from migration through UI.
 - Removed the copied external sales and identity integration features.
+
+## v-1.0.20
+
+### [v 1.0.20] 2026-07-31 6:04 pm - Version update
+
+#### Database Changes
+
+- Database update: Yes.
+
+#### App Codebase Changes
+
+- Bumped repository version to 1.0.20.
 
 ## v-1.0.19
 
@@ -21,6 +33,8 @@ Changelog label: v 1.0.19
 - Made Deposit, Payment, and generated Commission names and references optional.
 - Moved Deposit and Payment uniqueness from reference values to normalized TG codes,
   with migration guards for blank or duplicate persisted codes.
+- Added in-place verification and settlement lifecycle columns for existing Deposit,
+  Payment, and Commission records; existing rows default to not verified and not settled.
 
 #### App Codebase Changes
 
@@ -29,6 +43,8 @@ Changelog label: v 1.0.19
   names and references while retaining TG-code fallbacks in lists, messages, and ledger entries.
 - Made Trades Overview the landing workspace for every authenticated user while
   preserving administrator access to Platform identity settings.
+- Added Verify and Settle list actions across Deposits, Payments, and Commissions,
+  with settled rows hidden from the default Open view and available through lifecycle filters.
 - Refreshed the Node, Fastify, React, UI, editor, and TypeScript tooling dependencies.
 - Adapted the shared workspace editors to the TipTap 3 extension and content-update APIs.
 

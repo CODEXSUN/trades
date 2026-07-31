@@ -56,6 +56,30 @@ export class CommissionService {
     return this.settle("withdraw", id);
   }
 
+  verifyDeposit(id: string) {
+    return this.verify("deposit", id);
+  }
+  verifyWithdrawal(id: string) {
+    return this.verify("withdraw", id);
+  }
+
+  private async verify(direction: CommissionDirection, id: string) {
+    await this.context.authorize("trades.commission.verify");
+    const current = await this.repository.findEntry(Number(id), direction);
+    if (!current) throw AppError.notFound("Commission entry was not found.");
+    if (current.settledAt) throw AppError.conflict("Settled commission cannot be verified again.");
+    if (current.verifiedAt) throw AppError.conflict("Commission entry is already verified.");
+    const record = (await this.repository.verify(direction, current.id, this.context.actorEmail))!;
+    await this.context.audit({
+      action: "verified",
+      moduleKey: "trades.commission",
+      recordId: record.id,
+      recordLabel: `${record.direction} - ${record.reference ?? record.tgCode}`,
+      recordUuid: record.uuid
+    });
+    return record;
+  }
+
   private async settle(direction: CommissionDirection, id: string) {
     await this.context.authorize("trades.commission.settle");
     const current = await this.repository.findEntry(Number(id), direction);
@@ -63,13 +87,14 @@ export class CommissionService {
       throw AppError.notFound(
         `${direction === "deposit" ? "Deposit" : "Withdrawal"} commission was not found.`
       );
+    if (!current.verifiedAt) throw AppError.conflict("Verify the commission before settling it.");
     if (current.settledAt) throw AppError.conflict("Commission entry is already settled.");
     const record = (await this.repository.settle(direction, current.id, this.context.actorEmail))!;
     await this.context.audit({
       action: "settled",
       moduleKey: "trades.commission",
       recordId: record.id,
-      recordLabel: `${record.direction} - ${record.reference}`,
+      recordLabel: `${record.direction} - ${record.reference ?? record.tgCode}`,
       recordUuid: record.uuid
     });
     return record;

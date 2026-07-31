@@ -1,6 +1,7 @@
 import type { TradesModuleContext } from "../../request-context.js";
 
 export type CommissionDirection = "deposit" | "withdraw";
+export type CommissionLifecycleFilter = "all" | "open" | "settled" | "unverified" | "verified";
 export type CommissionVariantStatus = "active" | "inactive";
 
 export type CommissionVariant = {
@@ -33,6 +34,8 @@ export type CommissionEntry = {
   tgCode: string;
   totalCommission: number;
   uuid: string;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
 };
 
 export type CommissionList = {
@@ -45,7 +48,11 @@ export type CommissionList = {
   variants: CommissionVariant[];
 };
 
-export type CommissionListFilters = { dateFrom?: string; dateTo?: string };
+export type CommissionListFilters = {
+  dateFrom?: string;
+  dateTo?: string;
+  lifecycle?: CommissionLifecycleFilter;
+};
 export type CommissionVariantSavePayload = {
   name: string;
   percentage: number;

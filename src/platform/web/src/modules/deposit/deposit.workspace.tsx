@@ -27,24 +27,26 @@ import {
   createDeposit,
   deactivateDeposit,
   forceDeleteDeposit,
+  settleDeposit,
+  verifyDeposit,
   updateDeposit
 } from "./deposit.services";
-import type { DepositRecord, DepositSavePayload } from "./deposit.types";
+import type { DepositLifecycleFilter, DepositRecord, DepositSavePayload } from "./deposit.types";
 
 type DepositAction = {
   record: DepositRecord;
-  type: "force-delete" | "restore" | "suspend";
+  type: "force-delete" | "restore" | "settle" | "suspend" | "verify";
 };
 
 export function DepositWorkspace() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
+  const [lifecycle, setLifecycle] = useState<DepositLifecycleFilter>("open");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [editing, setEditing] = useState<DepositRecord | null | undefined>(undefined);
   const [pendingAction, setPendingAction] = useState<DepositAction | null>(null);
-  const depositsQuery = useDeposits();
+  const depositsQuery = useDeposits({ lifecycle });
 
   const saveMutation = useMutation({
     mutationFn: (payload: DepositSavePayload) =>
@@ -63,6 +65,8 @@ export function DepositWorkspace() {
     mutationFn: ({ record, type }: DepositAction) => {
       if (type === "force-delete") return forceDeleteDeposit(record.id);
       if (type === "restore") return activateDeposit(record.id);
+      if (type === "verify") return verifyDeposit(record.id);
+      if (type === "settle") return settleDeposit(record.id);
       return deactivateDeposit(record.id);
     },
     onError: showDepositError("Unable to update deposit"),
@@ -78,16 +82,15 @@ export function DepositWorkspace() {
   const filteredDeposits = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (depositsQuery.data ?? []).filter((record) => {
-      const matchesStatus = status === "all" || record.status === status;
       const matchesSearch =
         !term ||
         record.tgCode.toLowerCase().includes(term) ||
         record.bank.toLowerCase().includes(term) ||
         (record.name ?? "").toLowerCase().includes(term) ||
         (record.reference ?? "").toLowerCase().includes(term);
-      return matchesStatus && matchesSearch;
+      return matchesSearch;
     });
-  }, [depositsQuery.data, search, status]);
+  }, [depositsQuery.data, search]);
   const totalPages = Math.max(1, Math.ceil(filteredDeposits.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const pageDeposits = filteredDeposits.slice(
@@ -142,13 +145,15 @@ export function DepositWorkspace() {
     >
       <WorkspaceFilters
         filterOptions={[
-          { id: "all", label: "All deposits" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
+          { id: "open", label: "Open" },
+          { id: "unverified", label: "Not verified" },
+          { id: "verified", label: "Verified" },
+          { id: "settled", label: "Settled" },
+          { id: "all", label: "All deposits" }
         ]}
-        filterValue={status}
+        filterValue={lifecycle}
         onFilterValueChange={(value) => {
-          setStatus(value);
+          setLifecycle(value as DepositLifecycleFilter);
           setPage(1);
         }}
         onSearchValueChange={(value) => {
@@ -163,7 +168,10 @@ export function DepositWorkspace() {
         onEdit={setEditing}
         onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
         onRestore={(record) => setPendingAction({ record, type: "restore" })}
+        onSettle={(record) => setPendingAction({ record, type: "settle" })}
         onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
+        onVerify={(record) => setPendingAction({ record, type: "verify" })}
+        pendingId={lifecycleMutation.isPending ? (pendingAction?.record.id ?? null) : null}
         records={pageDeposits}
       />
       <DepositPageTotals
@@ -216,14 +224,18 @@ function DepositActionDialog({
   onConfirm: () => void;
 }) {
   const destructive = action?.type === "force-delete";
-  const verb = action?.type === "restore" ? "Restore" : destructive ? "Force delete" : "Suspend";
+  const verb = depositActionVerb(action?.type);
   return (
     <AlertDialog open={action !== null} onOpenChange={(open) => !open && onCancel()}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{verb} deposit?</AlertDialogTitle>
           <AlertDialogDescription>
-            {destructive
+            {action?.type === "verify"
+              ? "This deposit will be marked verified and can then be settled."
+              : action?.type === "settle"
+                ? "This verified deposit will be settled and hidden from the default Open list."
+                : destructive
               ? `${action?.record.reference ?? action?.record.tgCode ?? "This deposit"} will be permanently removed.`
               : `${action?.record.reference ?? action?.record.tgCode ?? "This deposit"} will be marked ${action?.type === "restore" ? "active" : "inactive"}.`}
           </AlertDialogDescription>
@@ -294,5 +306,15 @@ function showDepositError(title: string) {
 
 function depositActionMessage(type: DepositAction["type"]) {
   if (type === "force-delete") return "Deposit force deleted";
+  if (type === "verify") return "Deposit verified";
+  if (type === "settle") return "Deposit settled";
   return type === "restore" ? "Deposit restored" : "Deposit suspended";
+}
+
+function depositActionVerb(type: DepositAction["type"] | undefined) {
+  if (type === "restore") return "Restore";
+  if (type === "force-delete") return "Force delete";
+  if (type === "verify") return "Verify";
+  if (type === "settle") return "Settle";
+  return "Suspend";
 }

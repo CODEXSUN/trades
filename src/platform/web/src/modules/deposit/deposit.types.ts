@@ -1,4 +1,5 @@
 export type DepositStatus = "active" | "inactive";
+export type DepositLifecycleFilter = "all" | "open" | "settled" | "unverified" | "verified";
 
 export type DepositRecord = {
   amount: number;
@@ -10,8 +11,12 @@ export type DepositRecord = {
   name: string | null;
   reference: string | null;
   status: DepositStatus;
+  settledAt: string | null;
+  settledBy: string | null;
   tgCode: string;
   uuid: string;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
 };
 
 export type DepositSavePayload = {
@@ -24,4 +29,4 @@ export type DepositSavePayload = {
   tgCode: string;
 };
 
-export type DepositListFilters = { search?: string };
+export type DepositListFilters = { lifecycle?: DepositLifecycleFilter; search?: string };

@@ -1,7 +1,7 @@
-import { Trash2 } from "lucide-react";
+import { BadgeCheck, CircleCheck, Trash2 } from "lucide-react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { format, parseISO } from "date-fns";
-import { WorkspaceRowActions, WorkspaceStatusBadge, WorkspaceTable } from "@codexsun/ui";
+import { Button, WorkspaceRowActions, WorkspaceStatusBadge, WorkspaceTable } from "@codexsun/ui";
 import type { PaymentRecord } from "./payment.types";
 
 export function PaymentList({
@@ -9,17 +9,59 @@ export function PaymentList({
   onEdit,
   onForceDelete,
   onRestore,
+  onSettle,
   onSuspend,
+  onVerify,
+  pendingId,
   records
 }: {
   loading: boolean;
   onEdit: (record: PaymentRecord) => void;
   onForceDelete: (record: PaymentRecord) => void;
   onRestore: (record: PaymentRecord) => void;
+  onSettle: (record: PaymentRecord) => void;
   onSuspend: (record: PaymentRecord) => void;
+  onVerify: (record: PaymentRecord) => void;
+  pendingId: number | null;
   records: PaymentRecord[];
 }) {
   const columns: ColumnDef<PaymentRecord>[] = [
+    {
+      accessorKey: "verifiedAt",
+      cell: ({ row }) =>
+        row.original.verifiedAt ? (
+          <WorkspaceStatusBadge label="Verified" tone="success" />
+        ) : (
+          <Button
+            disabled={pendingId === row.original.id || Boolean(row.original.settledAt)}
+            onClick={() => onVerify(row.original)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <CircleCheck className="size-4" /> Verify
+          </Button>
+        ),
+      header: "Verification"
+    },
+    {
+      accessorKey: "settledAt",
+      cell: ({ row }) =>
+        row.original.settledAt ? (
+          <WorkspaceStatusBadge label="Settled" tone="neutral" />
+        ) : (
+          <Button
+            disabled={pendingId === row.original.id || !row.original.verifiedAt}
+            onClick={() => onSettle(row.original)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <BadgeCheck className="size-4" /> Settle
+          </Button>
+        ),
+      header: "Settlement"
+    },
     {
       accessorKey: "date",
       cell: ({ row }) => format(parseISO(row.original.date), "dd-MMM-yyyy"),
@@ -99,7 +141,7 @@ export function PaymentList({
         data={records}
         emptyState="No payments found."
         isLoading={loading}
-        minWidth="980px"
+        minWidth="1220px"
       />
     </div>
   );

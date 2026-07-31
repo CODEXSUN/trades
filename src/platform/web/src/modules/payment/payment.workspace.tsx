@@ -27,24 +27,26 @@ import {
   createPayment,
   deactivatePayment,
   forceDeletePayment,
+  settlePayment,
+  verifyPayment,
   updatePayment
 } from "./payment.services";
-import type { PaymentRecord, PaymentSavePayload } from "./payment.types";
+import type { PaymentLifecycleFilter, PaymentRecord, PaymentSavePayload } from "./payment.types";
 
 type PaymentAction = {
   record: PaymentRecord;
-  type: "force-delete" | "restore" | "suspend";
+  type: "force-delete" | "restore" | "settle" | "suspend" | "verify";
 };
 
 export function PaymentWorkspace() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("all");
+  const [lifecycle, setLifecycle] = useState<PaymentLifecycleFilter>("open");
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [editing, setEditing] = useState<PaymentRecord | null | undefined>(undefined);
   const [pendingAction, setPendingAction] = useState<PaymentAction | null>(null);
-  const paymentsQuery = usePayments();
+  const paymentsQuery = usePayments({ lifecycle });
 
   const saveMutation = useMutation({
     mutationFn: (payload: PaymentSavePayload) =>
@@ -66,6 +68,10 @@ export function PaymentWorkspace() {
           return forceDeletePayment(record.id);
         case "restore":
           return activatePayment(record.id);
+        case "verify":
+          return verifyPayment(record.id);
+        case "settle":
+          return settlePayment(record.id);
         default:
           return deactivatePayment(record.id);
       }
@@ -83,7 +89,6 @@ export function PaymentWorkspace() {
   const matchingPayments = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (paymentsQuery.data ?? []).filter((payment) => {
-      if (status !== "all" && payment.status !== status) return false;
       return (
         !term ||
         [payment.tgCode, payment.bank, payment.name ?? "", payment.reference ?? ""].some((value) =>
@@ -91,7 +96,7 @@ export function PaymentWorkspace() {
         )
       );
     });
-  }, [paymentsQuery.data, search, status]);
+  }, [paymentsQuery.data, search]);
   const totalPages = Math.max(1, Math.ceil(matchingPayments.length / rowsPerPage));
   const currentPage = Math.min(page, totalPages);
   const visiblePayments = matchingPayments.slice(
@@ -146,13 +151,15 @@ export function PaymentWorkspace() {
     >
       <WorkspaceFilters
         filterOptions={[
-          { id: "all", label: "All payments" },
-          { id: "active", label: "Active" },
-          { id: "inactive", label: "Inactive" }
+          { id: "open", label: "Open" },
+          { id: "unverified", label: "Not verified" },
+          { id: "verified", label: "Verified" },
+          { id: "settled", label: "Settled" },
+          { id: "all", label: "All payments" }
         ]}
-        filterValue={status}
+        filterValue={lifecycle}
         onFilterValueChange={(value) => {
-          setStatus(value);
+          setLifecycle(value as PaymentLifecycleFilter);
           setPage(1);
         }}
         onSearchValueChange={(value) => {
@@ -167,7 +174,10 @@ export function PaymentWorkspace() {
         onEdit={setEditing}
         onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
         onRestore={(record) => setPendingAction({ record, type: "restore" })}
+        onSettle={(record) => setPendingAction({ record, type: "settle" })}
         onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
+        onVerify={(record) => setPendingAction({ record, type: "verify" })}
+        pendingId={lifecycleMutation.isPending ? (pendingAction?.record.id ?? null) : null}
         records={visiblePayments}
       />
       <PaymentPageTotals
@@ -220,14 +230,18 @@ function PaymentActionDialog({
   onConfirm: () => void;
 }) {
   const forceDelete = action?.type === "force-delete";
-  const verb = action?.type === "restore" ? "Restore" : forceDelete ? "Force delete" : "Suspend";
+  const verb = paymentActionVerb(action?.type);
   return (
     <AlertDialog open={action !== null} onOpenChange={(open) => !open && onCancel()}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{verb} payment?</AlertDialogTitle>
           <AlertDialogDescription>
-            {forceDelete
+            {action?.type === "verify"
+              ? "This payment will be marked verified and can then be settled."
+              : action?.type === "settle"
+                ? "This verified payment will be settled and hidden from the default Open list."
+                : forceDelete
               ? `${action?.record.reference ?? action?.record.tgCode ?? "This payment"} will be permanently removed.`
               : `${action?.record.reference ?? action?.record.tgCode ?? "This payment"} will be marked ${action?.type === "restore" ? "active" : "inactive"}.`}
           </AlertDialogDescription>
@@ -294,5 +308,15 @@ function showPaymentError(title: string) {
 
 function paymentActionMessage(type: PaymentAction["type"]) {
   if (type === "force-delete") return "Payment force deleted";
+  if (type === "verify") return "Payment verified";
+  if (type === "settle") return "Payment settled";
   return type === "restore" ? "Payment restored" : "Payment suspended";
+}
+
+function paymentActionVerb(type: PaymentAction["type"] | undefined) {
+  if (type === "restore") return "Restore";
+  if (type === "force-delete") return "Force delete";
+  if (type === "verify") return "Verify";
+  if (type === "settle") return "Settle";
+  return "Suspend";
 }

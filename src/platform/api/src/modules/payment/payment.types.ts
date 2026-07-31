@@ -1,6 +1,7 @@
 import type { TradesModuleContext } from "../../request-context.js";
 
 export type PaymentStatus = "active" | "inactive";
+export type PaymentLifecycleFilter = "all" | "open" | "settled" | "unverified" | "verified";
 export type Payment = {
   amount: number;
   bank: string;
@@ -11,8 +12,12 @@ export type Payment = {
   name: string | null;
   reference: string | null;
   status: PaymentStatus;
+  settledAt: string | null;
+  settledBy: string | null;
   tgCode: string;
   uuid: string;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
 };
 
 export type PaymentSavePayload = {
@@ -25,7 +30,7 @@ export type PaymentSavePayload = {
   tgCode: string;
 };
 
-export type PaymentListFilters = { search?: string };
+export type PaymentListFilters = { lifecycle?: PaymentLifecycleFilter; search?: string };
 
 export type PaymentContext = TradesModuleContext;
 

@@ -1,4 +1,5 @@
 export type CommissionDirection = "deposit" | "withdraw";
+export type CommissionLifecycleFilter = "all" | "open" | "settled" | "unverified" | "verified";
 export type CommissionVariantStatus = "active" | "inactive";
 export type CommissionVariantRecord = {
   code: string;
@@ -28,6 +29,8 @@ export type CommissionEntryRecord = {
   tgCode: string;
   totalCommission: number;
   uuid: string;
+  verifiedAt: string | null;
+  verifiedBy: string | null;
 };
 export type CommissionListResponse = {
   entries: CommissionEntryRecord[];
@@ -38,7 +41,11 @@ export type CommissionListResponse = {
   };
   variants: CommissionVariantRecord[];
 };
-export type CommissionListFilters = { dateFrom?: string; dateTo?: string };
+export type CommissionListFilters = {
+  dateFrom?: string;
+  dateTo?: string;
+  lifecycle?: CommissionLifecycleFilter;
+};
 export type CommissionVariantSavePayload = {
   name: string;
   percentage: number;

@@ -74,7 +74,7 @@ function businessPermissions() {
         (action) => `trades.${module}.${action}`
       )
     ),
-    ...["view", "create", "update", "configure", "settle", "delete"].map(
+    ...["view", "create", "update", "configure", "verify", "settle", "delete"].map(
       (action) => `trades.commission.${action}`
     )
   ];

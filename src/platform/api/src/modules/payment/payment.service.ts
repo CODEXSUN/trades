@@ -55,6 +55,26 @@ export class PaymentService {
     return record;
   }
 
+  async verify(id: string) {
+    await this.context.authorize("trades.payment.lifecycle");
+    const current = await this.required(id);
+    if (current.settledAt) throw AppError.conflict("Settled payments cannot be verified again.");
+    if (current.verifiedAt) throw AppError.conflict("Payment is already verified.");
+    const record = (await this.repository.verify(current.id, this.context.actorEmail))!;
+    await this.audit("verified", record);
+    return record;
+  }
+
+  async settle(id: string) {
+    await this.context.authorize("trades.payment.lifecycle");
+    const current = await this.required(id);
+    if (!current.verifiedAt) throw AppError.conflict("Verify the payment before settling it.");
+    if (current.settledAt) throw AppError.conflict("Payment is already settled.");
+    const record = (await this.repository.settle(current.id, this.context.actorEmail))!;
+    await this.audit("settled", record);
+    return record;
+  }
+
   async forceDelete(id: string) {
     await this.context.authorize("trades.payment.delete");
     const current = await this.required(id);

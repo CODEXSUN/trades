@@ -6,6 +6,7 @@ const depositPath = "/trades/deposits";
 export function listDeposits(filters: DepositListFilters = {}) {
   const query = new URLSearchParams();
   if (filters.search?.trim()) query.set("search", filters.search.trim());
+  if (filters.lifecycle) query.set("lifecycle", filters.lifecycle);
   return apiGet<DepositRecord[]>(`${depositPath}${query.size ? `?${query.toString()}` : ""}`);
 }
 
@@ -27,4 +28,12 @@ export function deactivateDeposit(id: number) {
 
 export function forceDeleteDeposit(id: number) {
   return apiDelete<DepositRecord>(`${depositPath}/${id}/force`);
+}
+
+export function verifyDeposit(id: number) {
+  return apiPost<DepositRecord>(`${depositPath}/${id}/verify`);
+}
+
+export function settleDeposit(id: number) {
+  return apiPost<DepositRecord>(`${depositPath}/${id}/settle`);
 }

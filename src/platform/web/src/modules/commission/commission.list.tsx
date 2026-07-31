@@ -1,18 +1,22 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { format, parseISO } from "date-fns";
-import { BadgeCheck } from "lucide-react";
+import { BadgeCheck, CircleCheck } from "lucide-react";
 import { Button, WorkspaceStatusBadge, WorkspaceTable } from "@codexsun/ui";
 import type { CommissionEntryRecord, CommissionVariantRecord } from "./commission.types";
 
 export function CommissionList({
   loading,
   onSettle,
+  onVerify,
+  pendingId,
   records,
   settlingId,
   variants
 }: {
   loading: boolean;
   onSettle: (record: CommissionEntryRecord) => void;
+  onVerify: (record: CommissionEntryRecord) => void;
+  pendingId: number | null;
   records: CommissionEntryRecord[];
   settlingId: number | null;
   variants: CommissionVariantRecord[];
@@ -53,23 +57,44 @@ export function CommissionList({
       )
     })),
     {
+      id: "verified",
+      header: "Verification",
+      cell: ({ row }) =>
+        row.original.verifiedAt ? (
+          <WorkspaceStatusBadge label="Verified" tone="success" />
+        ) : (
+          <Button
+            disabled={pendingId === row.original.id || Boolean(row.original.settledAt)}
+            onClick={() => onVerify(row.original)}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <CircleCheck className="size-4" /> Verify
+          </Button>
+        )
+    },
+    {
       id: "settled",
-      header: "Settled",
-      cell: ({ row }) => (
-        <Button
-          disabled={settlingId === row.original.id}
-          onClick={(event) => {
-            event.stopPropagation();
-            onSettle(row.original);
-          }}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <BadgeCheck className="size-4" />
-          {settlingId === row.original.id ? "Settling..." : "Settle"}
-        </Button>
-      )
+      header: "Settlement",
+      cell: ({ row }) =>
+        row.original.settledAt ? (
+          <WorkspaceStatusBadge label="Settled" tone="neutral" />
+        ) : (
+          <Button
+            disabled={settlingId === row.original.id || !row.original.verifiedAt}
+            onClick={(event) => {
+              event.stopPropagation();
+              onSettle(row.original);
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            <BadgeCheck className="size-4" />
+            {settlingId === row.original.id ? "Settling..." : "Settle"}
+          </Button>
+        )
     }
   ];
   return (
@@ -77,9 +102,9 @@ export function CommissionList({
       <WorkspaceTable
         columns={columns}
         data={records}
-        emptyState="No unsettled commission entries found."
+        emptyState="No commission entries found for this filter."
         isLoading={loading}
-        minWidth={`${Math.max(900, 560 + variants.length * 170)}px`}
+        minWidth={`${Math.max(1080, 720 + variants.length * 170)}px`}
       />
     </div>
   );

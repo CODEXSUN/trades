@@ -7,6 +7,6 @@ export const paymentQueryKey = ["trades", "payment"] as const;
 export function usePayments(filters: PaymentListFilters = {}) {
   return useQuery({
     queryFn: () => listPayments(filters),
-    queryKey: [...paymentQueryKey, filters.search ?? ""]
+    queryKey: [...paymentQueryKey, filters.lifecycle ?? "open", filters.search ?? ""]
   });
 }

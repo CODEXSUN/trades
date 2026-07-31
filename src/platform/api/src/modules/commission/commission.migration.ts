@@ -41,6 +41,8 @@ export async function migrateCommissionModule(database: Kysely<TradesDatabase>) 
       name VARCHAR(200) NULL,
       reference VARCHAR(180) NULL,
       amount DECIMAL(18,2) NOT NULL,
+      verified_at DATETIME NULL,
+      verified_by VARCHAR(190) NULL,
       settled_at DATETIME NULL,
       settled_by VARCHAR(190) NULL,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -74,6 +76,7 @@ export async function migrateCommissionModule(database: Kysely<TradesDatabase>) 
   `
     )
     .execute(database);
+  await ensureVerificationColumns(database);
   await sql
     .raw(
       "ALTER TABLE trades_commission_entries MODIFY COLUMN name VARCHAR(200) NULL, MODIFY COLUMN reference VARCHAR(180) NULL"
@@ -94,6 +97,21 @@ export async function migrateCommissionModule(database: Kysely<TradesDatabase>) 
   await sql.raw("DROP TABLE IF EXISTS payment_commissions").execute(database);
   await sql.raw("DROP TABLE IF EXISTS trades_deposit_commissions").execute(database);
   await sql.raw("DROP TABLE IF EXISTS trades_payment_commissions").execute(database);
+}
+
+async function ensureVerificationColumns(database: Kysely<TradesDatabase>) {
+  for (const [column, definition] of [
+    ["verified_at", "DATETIME NULL"],
+    ["verified_by", "VARCHAR(190) NULL"]
+  ] as const) {
+    const existing = await sql<{ count: number | string }>`
+      SELECT COUNT(*) count FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='trades_commission_entries' AND COLUMN_NAME=${column}
+    `.execute(database);
+    if (Number(existing.rows[0]?.count ?? 0) === 0) {
+      await sql.raw(`ALTER TABLE trades_commission_entries ADD COLUMN ${column} ${definition}`).execute(database);
+    }
+  }
 }
 
 const defaultVariants = [

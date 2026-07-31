@@ -16,6 +16,7 @@ export function listCommissions(
   const query = new URLSearchParams();
   if (filters.dateFrom) query.set("dateFrom", filters.dateFrom);
   if (filters.dateTo) query.set("dateTo", filters.dateTo);
+  if (filters.lifecycle) query.set("lifecycle", filters.lifecycle);
   const collection = direction === "deposit" ? "deposits" : "withdrawals";
   return apiGet<CommissionListResponse>(`${path}/${collection}${query.size ? `?${query}` : ""}`);
 }
@@ -25,4 +26,8 @@ export function updateCommissionVariant(id: number, payload: CommissionVariantSa
 export function settleCommission(direction: CommissionDirection, id: number) {
   const collection = direction === "deposit" ? "deposits" : "withdrawals";
   return apiPost<CommissionEntryRecord>(`${path}/${collection}/${id}/settle`);
+}
+export function verifyCommission(direction: CommissionDirection, id: number) {
+  const collection = direction === "deposit" ? "deposits" : "withdrawals";
+  return apiPost<CommissionEntryRecord>(`${path}/${collection}/${id}/verify`);
 }

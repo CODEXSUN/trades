@@ -55,6 +55,26 @@ export class DepositService {
     return record;
   }
 
+  async verify(id: string) {
+    await this.context.authorize("trades.deposit.lifecycle");
+    const current = await this.required(id);
+    if (current.settledAt) throw AppError.conflict("Settled deposits cannot be verified again.");
+    if (current.verifiedAt) throw AppError.conflict("Deposit is already verified.");
+    const record = (await this.repository.verify(current.id, this.context.actorEmail))!;
+    await this.audit("verified", record);
+    return record;
+  }
+
+  async settle(id: string) {
+    await this.context.authorize("trades.deposit.lifecycle");
+    const current = await this.required(id);
+    if (!current.verifiedAt) throw AppError.conflict("Verify the deposit before settling it.");
+    if (current.settledAt) throw AppError.conflict("Deposit is already settled.");
+    const record = (await this.repository.settle(current.id, this.context.actorEmail))!;
+    await this.audit("settled", record);
+    return record;
+  }
+
   async forceDelete(id: string) {
     await this.context.authorize("trades.deposit.delete");
     const current = await this.required(id);

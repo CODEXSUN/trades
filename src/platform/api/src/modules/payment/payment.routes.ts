@@ -17,9 +17,13 @@ const paymentSchema = z.object({
   id: z.number().int().positive(),
   name: z.string().nullable(),
   reference: z.string().nullable(),
+  settledAt: z.string().nullable(),
+  settledBy: z.string().nullable(),
   status: statusSchema,
   tgCode: z.string(),
-  uuid: z.string().length(8)
+  uuid: z.string().length(8),
+  verifiedAt: z.string().nullable(),
+  verifiedBy: z.string().nullable()
 });
 const paymentPayloadSchema = z
   .object({
@@ -33,7 +37,8 @@ const paymentPayloadSchema = z
   })
   .strict();
 const idParamsSchema = z.object({ id: z.string().regex(/^\d+$/, "Payment ID must be numeric.") });
-const querySchema = z.object({ search: z.string().trim().optional() });
+const lifecycleSchema = z.enum(["all", "open", "settled", "unverified", "verified"]);
+const querySchema = z.object({ lifecycle: lifecycleSchema.optional(), search: z.string().trim().optional() });
 
 function optionalTextSchema(maxLength: number) {
   return z
@@ -48,7 +53,10 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
   registerContractRoute(app, {
     handler: ({ query, request }) =>
       new PaymentService(tradesRequestContext(request)).list(
-        query.search ? { search: query.search } : {}
+        {
+          ...(query.lifecycle ? { lifecycle: query.lifecycle } : {}),
+          ...(query.search ? { search: query.search } : {})
+        }
       ),
     method: "GET",
     schemas: { querystring: querySchema, response: z.array(paymentSchema) },
@@ -83,6 +91,15 @@ export async function registerPaymentRoutes(app: FastifyInstance) {
   });
   registerStatusRoute(app, "activate", "active");
   registerStatusRoute(app, "deactivate", "inactive");
+  for (const action of ["verify", "settle"] as const) {
+    registerContractRoute(app, {
+      handler: ({ params, request }) =>
+        new PaymentService(tradesRequestContext(request))[action](params.id),
+      method: "POST",
+      schemas: { params: idParamsSchema, response: paymentSchema },
+      url: `${PAYMENT_COLLECTION_PATH}/:id/${action}`
+    });
+  }
   registerContractRoute(app, {
     handler: ({ params, request }) =>
       new PaymentService(tradesRequestContext(request)).forceDelete(params.id),

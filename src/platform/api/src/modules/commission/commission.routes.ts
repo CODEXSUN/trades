@@ -33,7 +33,9 @@ const entrySchema = z.object({
   settledBy: z.string().nullable(),
   tgCode: z.string(),
   totalCommission: z.number().nonnegative(),
-  uuid: z.string().length(8)
+  uuid: z.string().length(8),
+  verifiedAt: z.string().nullable(),
+  verifiedBy: z.string().nullable()
 });
 const listSchema = z.object({
   entries: z.array(entrySchema),
@@ -48,7 +50,11 @@ const listSchema = z.object({
 });
 const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u);
 const querySchema = z
-  .object({ dateFrom: dateSchema.optional(), dateTo: dateSchema.optional() })
+  .object({
+    dateFrom: dateSchema.optional(),
+    dateTo: dateSchema.optional(),
+    lifecycle: z.enum(["all", "open", "settled", "unverified", "verified"]).optional()
+  })
   .strict();
 const idSchema = z.object({ id: z.string().regex(/^\d+$/u) });
 const variantPayloadSchema = z
@@ -67,7 +73,8 @@ export async function registerCommissionRoutes(app: FastifyInstance) {
     handler: ({ query, request }) =>
       new CommissionService(tradesRequestContext(request)).listDeposits({
         ...(query.dateFrom ? { dateFrom: query.dateFrom } : {}),
-        ...(query.dateTo ? { dateTo: query.dateTo } : {})
+        ...(query.dateTo ? { dateTo: query.dateTo } : {}),
+        ...(query.lifecycle ? { lifecycle: query.lifecycle } : {})
       })
   });
   registerContractRoute(app, {
@@ -77,7 +84,8 @@ export async function registerCommissionRoutes(app: FastifyInstance) {
     handler: ({ query, request }) =>
       new CommissionService(tradesRequestContext(request)).listWithdrawals({
         ...(query.dateFrom ? { dateFrom: query.dateFrom } : {}),
-        ...(query.dateTo ? { dateTo: query.dateTo } : {})
+        ...(query.dateTo ? { dateTo: query.dateTo } : {}),
+        ...(query.lifecycle ? { lifecycle: query.lifecycle } : {})
       })
   });
   registerContractRoute(app, {
@@ -92,6 +100,20 @@ export async function registerCommissionRoutes(app: FastifyInstance) {
     schemas: { body: variantPayloadSchema, params: idSchema, response: variantSchema },
     handler: ({ body, params, request }) =>
       new CommissionService(tradesRequestContext(request)).updateVariant(params.id, body)
+  });
+  registerContractRoute(app, {
+    method: "POST",
+    url: `${COMMISSION_COLLECTION_PATH}/deposits/:id/verify`,
+    schemas: { params: idSchema, response: entrySchema },
+    handler: ({ params, request }) =>
+      new CommissionService(tradesRequestContext(request)).verifyDeposit(params.id)
+  });
+  registerContractRoute(app, {
+    method: "POST",
+    url: `${COMMISSION_COLLECTION_PATH}/withdrawals/:id/verify`,
+    schemas: { params: idSchema, response: entrySchema },
+    handler: ({ params, request }) =>
+      new CommissionService(tradesRequestContext(request)).verifyWithdrawal(params.id)
   });
   registerContractRoute(app, {
     method: "POST",

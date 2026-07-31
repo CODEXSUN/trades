@@ -17,10 +17,14 @@ type PaymentRow = {
   id: number;
   name: string | null;
   reference: string | null;
+  settled_at: Date | string | null;
+  settled_by: string | null;
   status: PaymentStatus;
   tg_code: string;
   transaction_date: Date | string;
   uuid: string;
+  verified_at: Date | string | null;
+  verified_by: string | null;
 };
 
 export class PaymentRepository {
@@ -28,11 +32,17 @@ export class PaymentRepository {
 
   async list(filters: PaymentListFilters = {}) {
     const term = `%${(filters.search ?? "").trim().toLowerCase()}%`;
+    const lifecycle = filters.lifecycle ?? "open";
     const result = await sql<PaymentRow>`
-      SELECT p.id,p.uuid,p.transaction_date,p.tg_code,p.bank,p.bank_account_id,ba.code bank_code,p.name,p.amount,p.reference,p.status
+      SELECT p.id,p.uuid,p.transaction_date,p.tg_code,p.bank,p.bank_account_id,ba.code bank_code,
+        p.name,p.amount,p.reference,p.status,p.verified_at,p.verified_by,p.settled_at,p.settled_by
       FROM trades_payments p
       LEFT JOIN trades_bank_accounts ba ON ba.id=p.bank_account_id
-      WHERE (${filters.search ?? ""}='' OR LOWER(p.tg_code) LIKE ${term}
+      WHERE (${lifecycle}='all' OR (${lifecycle}='open' AND p.settled_at IS NULL)
+        OR (${lifecycle}='unverified' AND p.verified_at IS NULL AND p.settled_at IS NULL)
+        OR (${lifecycle}='verified' AND p.verified_at IS NOT NULL AND p.settled_at IS NULL)
+        OR (${lifecycle}='settled' AND p.settled_at IS NOT NULL))
+        AND (${filters.search ?? ""}='' OR LOWER(p.tg_code) LIKE ${term}
         OR LOWER(p.bank) LIKE ${term} OR LOWER(COALESCE(p.name,'')) LIKE ${term}
         OR LOWER(COALESCE(p.reference,'')) LIKE ${term})
       ORDER BY p.transaction_date DESC,p.id DESC
@@ -42,7 +52,8 @@ export class PaymentRepository {
 
   async find(id: string | number) {
     const result = await sql<PaymentRow>`
-      SELECT p.id,p.uuid,p.transaction_date,p.tg_code,p.bank,p.bank_account_id,ba.code bank_code,p.name,p.amount,p.reference,p.status
+      SELECT p.id,p.uuid,p.transaction_date,p.tg_code,p.bank,p.bank_account_id,ba.code bank_code,
+        p.name,p.amount,p.reference,p.status,p.verified_at,p.verified_by,p.settled_at,p.settled_by
       FROM trades_payments p
       LEFT JOIN trades_bank_accounts ba ON ba.id=p.bank_account_id
       WHERE p.id=${Number(id)} LIMIT 1
@@ -89,6 +100,7 @@ export class PaymentRepository {
         UPDATE trades_payments SET transaction_date=${input.date},tg_code=${input.tgCode},
           bank_account_id=${input.bankAccountId},bank=${input.bank},name=${input.name},amount=${input.amount},
           reference=${input.reference},status=${input.status}
+          ,verified_at=NULL,verified_by=NULL,settled_at=NULL,settled_by=NULL
         WHERE id=${id}
       `.execute(transaction);
       await syncBankLedgerSourceEntry(transaction, {
@@ -120,6 +132,18 @@ export class PaymentRepository {
     return this.find(id);
   }
 
+  async verify(id: number, actorEmail: string) {
+    await sql`UPDATE trades_payments SET verified_at=CURRENT_TIMESTAMP,verified_by=${actorEmail}
+      WHERE id=${id} AND verified_at IS NULL AND settled_at IS NULL`.execute(this.database);
+    return this.find(id);
+  }
+
+  async settle(id: number, actorEmail: string) {
+    await sql`UPDATE trades_payments SET settled_at=CURRENT_TIMESTAMP,settled_by=${actorEmail}
+      WHERE id=${id} AND verified_at IS NOT NULL AND settled_at IS NULL`.execute(this.database);
+    return this.find(id);
+  }
+
   async forceDelete(id: number) {
     const record = await this.find(id);
     if (!record) return null;
@@ -146,10 +170,18 @@ function mapPayment(row: PaymentRow): Payment {
     id: Number(row.id),
     name: row.name,
     reference: row.reference,
+    settledAt: timestamp(row.settled_at),
+    settledBy: row.settled_by,
     status: row.status,
     tgCode: row.tg_code,
-    uuid: row.uuid
+    uuid: row.uuid,
+    verifiedAt: timestamp(row.verified_at),
+    verifiedBy: row.verified_by
   };
+}
+
+function timestamp(value: Date | string | null) {
+  return value ? new Date(value).toISOString() : null;
 }
 
 function toDate(value: Date | string) {

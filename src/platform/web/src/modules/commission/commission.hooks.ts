@@ -5,7 +5,13 @@ import type { CommissionDirection, CommissionListFilters } from "./commission.ty
 export const commissionQueryKey = ["trades", "commission"] as const;
 export function useCommissions(direction: CommissionDirection, filters: CommissionListFilters) {
   return useQuery({
-    queryKey: [...commissionQueryKey, direction, filters.dateFrom ?? "", filters.dateTo ?? ""],
+    queryKey: [
+      ...commissionQueryKey,
+      direction,
+      filters.dateFrom ?? "",
+      filters.dateTo ?? "",
+      filters.lifecycle ?? "open"
+    ],
     queryFn: () => listCommissions(direction, filters)
   });
 }

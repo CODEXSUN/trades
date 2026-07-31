@@ -48,6 +48,7 @@ const permissionKeys = [
   "trades.commission.create",
   "trades.commission.update",
   "trades.commission.configure",
+  "trades.commission.verify",
   "trades.commission.settle",
   "trades.commission.delete"
 ] as const;
