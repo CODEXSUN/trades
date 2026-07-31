@@ -52,11 +52,7 @@ export class UserService {
     await this.context.authorize("identity.user.create");
     const value = normalize(input, true);
     let record = await this.save(() =>
-      this.repository.create(
-        value,
-        randomBytes(4).toString("hex"),
-        hashPassword(value.password!)
-      )
+      this.repository.create(value, randomBytes(4).toString("hex"), hashPassword(value.password!))
     );
     const access = userRoleStandardAccessContract({
       actorEmail: this.context.actorEmail,
@@ -83,8 +79,7 @@ export class UserService {
         throw AppError.forbidden("The protected system user's role cannot be modified.");
       }
     }
-    let record = current;
-    record = (await this.save(() =>
+    let record = (await this.save(() =>
       this.repository.update(
         current.id,
         value,

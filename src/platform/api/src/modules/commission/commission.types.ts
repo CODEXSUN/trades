@@ -26,8 +26,8 @@ export type CommissionEntry = {
   direction: CommissionDirection;
   id: number;
   lines: CommissionLine[];
-  name: string;
-  reference: string;
+  name: string | null;
+  reference: string | null;
   settledAt: string | null;
   settledBy: string | null;
   tgCode: string;
@@ -55,8 +55,8 @@ export type CommissionSourcePayload = {
   amount: number;
   date: string;
   direction: CommissionDirection;
-  name: string;
-  reference: string;
+  name: string | null;
+  reference: string | null;
   sourceRecordId: number;
   tgCode: string;
 };

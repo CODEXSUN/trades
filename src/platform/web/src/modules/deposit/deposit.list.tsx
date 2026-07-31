@@ -34,7 +34,7 @@ export function DepositList({
           onClick={() => onEdit(row.original)}
           type="button"
         >
-          {row.original.name}
+          {row.original.name ?? "—"}
         </button>
       ),
       header: "Name"
@@ -78,7 +78,7 @@ export function DepositList({
             onDelete={() => onSuspend(row.original)}
             onEdit={() => onEdit(row.original)}
             onRestore={() => onRestore(row.original)}
-            title={row.original.reference}
+            title={row.original.reference ?? row.original.tgCode}
           />
         </div>
       ),

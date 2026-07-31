@@ -15,8 +15,8 @@ type DepositRow = {
   bank_account_id: number | null;
   bank_code: string | null;
   id: number;
-  name: string;
-  reference: string;
+  name: string | null;
+  reference: string | null;
   status: DepositStatus;
   tg_code: string;
   transaction_date: Date | string;
@@ -33,8 +33,8 @@ export class DepositRepository {
       FROM trades_deposits d
       LEFT JOIN trades_bank_accounts ba ON ba.id=d.bank_account_id
       WHERE (${filters.search ?? ""}='' OR LOWER(d.tg_code) LIKE ${term}
-        OR LOWER(d.bank) LIKE ${term} OR LOWER(d.name) LIKE ${term}
-        OR LOWER(d.reference) LIKE ${term})
+        OR LOWER(d.bank) LIKE ${term} OR LOWER(COALESCE(d.name,'')) LIKE ${term}
+        OR LOWER(COALESCE(d.reference,'')) LIKE ${term})
       ORDER BY d.transaction_date DESC,d.id DESC
     `.execute(this.database);
     return result.rows.map(mapDeposit);
@@ -65,8 +65,8 @@ export class DepositRepository {
         date: input.date,
         direction: "debit",
         entryType: "deposit",
-        narration: `Deposit ${input.reference} - ${input.name}`,
-        reference: input.reference,
+        narration: depositNarration(input),
+        reference: input.reference ?? input.tgCode,
         sourceModule: "deposit",
         sourceRecordId: depositId
       });
@@ -97,8 +97,8 @@ export class DepositRepository {
         date: input.date,
         direction: "debit",
         entryType: "deposit",
-        narration: `Deposit ${input.reference} - ${input.name}`,
-        reference: input.reference,
+        narration: depositNarration(input),
+        reference: input.reference ?? input.tgCode,
         sourceModule: "deposit",
         sourceRecordId: id
       });
@@ -130,6 +130,10 @@ export class DepositRepository {
     });
     return record;
   }
+}
+
+function depositNarration(input: DepositPersistencePayload) {
+  return [`Deposit ${input.tgCode}`, input.name, input.reference].filter(Boolean).join(" · ");
 }
 
 function mapDeposit(row: DepositRow): Deposit {

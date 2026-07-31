@@ -74,7 +74,7 @@ export class PaymentService {
       action,
       moduleKey: "trades.payment",
       recordId: record.id,
-      recordLabel: `${record.tgCode} · ${record.name}`,
+      recordLabel: record.name ? `${record.tgCode} · ${record.name}` : record.tgCode,
       recordUuid: record.uuid
     });
   }
@@ -83,7 +83,7 @@ export class PaymentService {
     try {
       return await work();
     } catch (error) {
-      if (isDuplicate(error)) throw AppError.conflict("Payment reference already exists.");
+      if (isDuplicate(error)) throw AppError.conflict("Payment TG code already exists.");
       throw error;
     }
   }
@@ -100,12 +100,17 @@ export class PaymentService {
       bankAccountId: account.id,
       bankCode: account.code,
       date: input.date,
-      name: input.name.trim(),
-      reference: input.reference.trim(),
+      name: optionalText(input.name),
+      reference: optionalText(input.reference),
       status: input.status,
       tgCode: input.tgCode.trim().toUpperCase()
     };
   }
+}
+
+function optionalText(value: string | null) {
+  const normalized = value?.trim();
+  return normalized || null;
 }
 
 function roundMoney(value: number) {

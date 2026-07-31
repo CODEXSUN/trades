@@ -59,7 +59,7 @@ function LoginSurface({ landing }: { landing: boolean }) {
       .then((session) => {
         if (cancelled) return;
         if (session.authenticated) {
-          void navigate({ replace: true, to: applicationEntryPath(session.role) });
+          void navigate({ replace: true, to: applicationEntryPath() });
           return;
         }
         clearToken();
@@ -89,7 +89,7 @@ function LoginSurface({ landing }: { landing: boolean }) {
     void developmentLogin()
       .then((result) => {
         if (result.success) {
-          void navigate({ replace: true, to: applicationEntryPath(result.data.role) });
+          void navigate({ replace: true, to: applicationEntryPath() });
         } else setMessage(result.error.message);
       })
       .finally(() => setLoading(false));
@@ -101,7 +101,7 @@ function LoginSurface({ landing }: { landing: boolean }) {
     setMessage("");
     const result = await login({ email, password });
     if (result.success) {
-      void navigate({ replace: true, to: applicationEntryPath(result.data.role) });
+      void navigate({ replace: true, to: applicationEntryPath() });
     } else setMessage(result.error.message);
     setLoading(false);
   }

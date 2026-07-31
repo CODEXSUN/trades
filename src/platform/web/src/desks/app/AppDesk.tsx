@@ -79,7 +79,7 @@ export function AppDesk() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const claims = readClaims();
   const administrator = canAccessAdministratorSettings(claims.role);
-  const requestedPage = pageFromPath(pathname, claims.role);
+  const requestedPage = pageFromPath(pathname);
   const page = isIdentityAdminPage(requestedPage) && !administrator ? "trades.overview" : requestedPage;
   const select = (next: Page) => void navigate({ to: `/app/${next.replaceAll(".", "/")}` });
 
@@ -197,7 +197,7 @@ function isIdentityAdminPage(page: Page) {
   return page.startsWith("identity.") && page !== "identity.profile";
 }
 
-function pageFromPath(pathname: string, role: string | undefined): Page {
+function pageFromPath(pathname: string): Page {
   const value = pathname.replace(/^\/app\/?/u, "").replaceAll("/", ".");
   const allowed: Page[] = [
     "trades.overview",
@@ -213,7 +213,7 @@ function pageFromPath(pathname: string, role: string | undefined): Page {
     "identity.profile"
   ];
   if (allowed.includes(value as Page)) return value as Page;
-  return applicationEntryPath(role).replace(/^\/app\//u, "").replaceAll("/", ".") as Page;
+  return applicationEntryPath().replace(/^\/app\//u, "").replaceAll("/", ".") as Page;
 }
 
 function titleFor(page: Page) {

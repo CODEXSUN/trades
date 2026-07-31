@@ -53,7 +53,7 @@ export function DepositWorkspace() {
     onSuccess: async (record) => {
       await refreshDeposits(queryClient);
       toast.success(`Deposit ${editing ? "updated" : "created"}`, {
-        description: `${record.reference} is ready in the list.`
+        description: `${record.reference ?? record.tgCode} is ready in the list.`
       });
       setEditing(undefined);
     }
@@ -68,7 +68,9 @@ export function DepositWorkspace() {
     onError: showDepositError("Unable to update deposit"),
     onSuccess: async (record, action) => {
       await refreshDeposits(queryClient);
-      toast.success(depositActionMessage(action.type), { description: record.reference });
+      toast.success(depositActionMessage(action.type), {
+        description: record.reference ?? record.tgCode
+      });
       setPendingAction(null);
     }
   });
@@ -81,8 +83,8 @@ export function DepositWorkspace() {
         !term ||
         record.tgCode.toLowerCase().includes(term) ||
         record.bank.toLowerCase().includes(term) ||
-        record.name.toLowerCase().includes(term) ||
-        record.reference.toLowerCase().includes(term);
+        (record.name ?? "").toLowerCase().includes(term) ||
+        (record.reference ?? "").toLowerCase().includes(term);
       return matchesStatus && matchesSearch;
     });
   }, [depositsQuery.data, search, status]);
@@ -222,8 +224,8 @@ function DepositActionDialog({
           <AlertDialogTitle>{verb} deposit?</AlertDialogTitle>
           <AlertDialogDescription>
             {destructive
-              ? `${action?.record.reference ?? "This deposit"} will be permanently removed.`
-              : `${action?.record.reference ?? "This deposit"} will be marked ${action?.type === "restore" ? "active" : "inactive"}.`}
+              ? `${action?.record.reference ?? action?.record.tgCode ?? "This deposit"} will be permanently removed.`
+              : `${action?.record.reference ?? action?.record.tgCode ?? "This deposit"} will be marked ${action?.type === "restore" ? "active" : "inactive"}.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

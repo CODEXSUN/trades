@@ -15,8 +15,8 @@ const paymentSchema = z.object({
   bankCode: z.string().nullable(),
   date: z.string(),
   id: z.number().int().positive(),
-  name: z.string(),
-  reference: z.string(),
+  name: z.string().nullable(),
+  reference: z.string().nullable(),
   status: statusSchema,
   tgCode: z.string(),
   uuid: z.string().length(8)
@@ -26,14 +26,23 @@ const paymentPayloadSchema = z
     amount: z.number().positive(),
     bankAccountId: z.number().int().positive(),
     date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Payment date must use YYYY-MM-DD."),
-    name: z.string().trim().min(2).max(200),
-    reference: z.string().trim().min(1).max(180),
+    name: optionalTextSchema(200),
+    reference: optionalTextSchema(180),
     status: statusSchema,
     tgCode: z.string().trim().min(1).max(80)
   })
   .strict();
 const idParamsSchema = z.object({ id: z.string().regex(/^\d+$/, "Payment ID must be numeric.") });
 const querySchema = z.object({ search: z.string().trim().optional() });
+
+function optionalTextSchema(maxLength: number) {
+  return z
+    .string()
+    .trim()
+    .max(maxLength)
+    .nullable()
+    .transform((value) => value || null);
+}
 
 export async function registerPaymentRoutes(app: FastifyInstance) {
   registerContractRoute(app, {

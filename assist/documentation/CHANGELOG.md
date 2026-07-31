@@ -1,8 +1,8 @@
 # Changelog
 
-Current version: 1.0.18
-Release tag: v-1.0.18
-Changelog label: v 1.0.18
+Current version: 1.0.19
+Release tag: v-1.0.19
+Changelog label: v 1.0.19
 
 ## Unreleased - Trades conversion
 
@@ -10,6 +10,27 @@ Changelog label: v 1.0.18
 - Retained Platform local users, roles, permissions, and assignments.
 - Composed Deposit, Payment, Bank Account, and Commission from migration through UI.
 - Removed the copied external sales and identity integration features.
+
+## v-1.0.19
+
+### [v 1.0.19] 2026-07-31 1:59 pm - Transaction identity and dependency refresh
+
+#### Database Changes
+
+- Database update: Yes.
+- Made Deposit, Payment, and generated Commission names and references optional.
+- Moved Deposit and Payment uniqueness from reference values to normalized TG codes,
+  with migration guards for blank or duplicate persisted codes.
+
+#### App Codebase Changes
+
+- Bumped the repository and all Trades-owned workspace packages to 1.0.19.
+- Updated Deposit, Payment, and Commission API and web behavior to handle optional
+  names and references while retaining TG-code fallbacks in lists, messages, and ledger entries.
+- Made Trades Overview the landing workspace for every authenticated user while
+  preserving administrator access to Platform identity settings.
+- Refreshed the Node, Fastify, React, UI, editor, and TypeScript tooling dependencies.
+- Adapted the shared workspace editors to the TipTap 3 extension and content-update APIs.
 
 ## v-1.0.18
 

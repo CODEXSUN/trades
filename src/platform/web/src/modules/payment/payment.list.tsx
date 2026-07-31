@@ -34,7 +34,7 @@ export function PaymentList({
           onClick={() => onEdit(row.original)}
           type="button"
         >
-          {row.original.name}
+          {row.original.name ?? "—"}
         </button>
       ),
       header: "Name"
@@ -80,7 +80,7 @@ export function PaymentList({
               onDelete={() => onSuspend(payment)}
               onEdit={() => onEdit(payment)}
               onRestore={() => onRestore(payment)}
-              title={payment.reference}
+              title={payment.reference ?? payment.tgCode}
             />
           </div>
         );

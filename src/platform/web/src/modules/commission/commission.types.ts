@@ -21,8 +21,8 @@ export type CommissionEntryRecord = {
   direction: CommissionDirection;
   id: number;
   lines: CommissionLineRecord[];
-  name: string;
-  reference: string;
+  name: string | null;
+  reference: string | null;
   settledAt: string | null;
   settledBy: string | null;
   tgCode: string;

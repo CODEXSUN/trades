@@ -45,7 +45,7 @@ export function CommissionWorkspace({ direction }: { direction: CommissionDirect
       await refresh();
       setPending(null);
       toast.success("Commission settled", {
-        description: `${record.reference} was confirmed and removed from the unsettled list.`
+        description: `${record.reference ?? record.tgCode} was confirmed and removed from the unsettled list.`
       });
     },
     onError: notify("Unable to settle commission")
@@ -139,7 +139,7 @@ export function CommissionWorkspace({ direction }: { direction: CommissionDirect
             <AlertDialogTitle>Settle this commission?</AlertDialogTitle>
             <AlertDialogDescription>
               {pending
-                ? `${pending.reference} will be confirmed and hidden from the unsettled ${direction} list.`
+                ? `${pending.reference ?? pending.tgCode} will be confirmed and hidden from the unsettled ${direction} list.`
                 : "Confirm this entry."}
             </AlertDialogDescription>
           </AlertDialogHeader>

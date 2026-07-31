@@ -8,8 +8,8 @@ export type Deposit = {
   bankCode: string | null;
   date: string;
   id: number;
-  name: string;
-  reference: string;
+  name: string | null;
+  reference: string | null;
   status: DepositStatus;
   tgCode: string;
   uuid: string;
@@ -19,8 +19,8 @@ export type DepositSavePayload = {
   amount: number;
   bankAccountId: number;
   date: string;
-  name: string;
-  reference: string;
+  name: string | null;
+  reference: string | null;
   status: DepositStatus;
   tgCode: string;
 };

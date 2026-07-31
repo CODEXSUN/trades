@@ -53,7 +53,7 @@ export function PaymentWorkspace() {
     onSuccess: async (record) => {
       await queryClient.invalidateQueries({ queryKey: paymentQueryKey });
       toast.success(`Payment ${editing ? "updated" : "created"}`, {
-        description: `${record.reference} is ready in the list.`
+        description: `${record.reference ?? record.tgCode} is ready in the list.`
       });
       setEditing(undefined);
     }
@@ -73,7 +73,9 @@ export function PaymentWorkspace() {
     onError: showPaymentError("Unable to update payment"),
     onSuccess: async (record, action) => {
       await queryClient.invalidateQueries({ queryKey: paymentQueryKey });
-      toast.success(paymentActionMessage(action.type), { description: record.reference });
+      toast.success(paymentActionMessage(action.type), {
+        description: record.reference ?? record.tgCode
+      });
       setPendingAction(null);
     }
   });
@@ -84,7 +86,7 @@ export function PaymentWorkspace() {
       if (status !== "all" && payment.status !== status) return false;
       return (
         !term ||
-        [payment.tgCode, payment.bank, payment.name, payment.reference].some((value) =>
+        [payment.tgCode, payment.bank, payment.name ?? "", payment.reference ?? ""].some((value) =>
           value.toLowerCase().includes(term)
         )
       );
@@ -226,8 +228,8 @@ function PaymentActionDialog({
           <AlertDialogTitle>{verb} payment?</AlertDialogTitle>
           <AlertDialogDescription>
             {forceDelete
-              ? `${action?.record.reference ?? "This payment"} will be permanently removed.`
-              : `${action?.record.reference ?? "This payment"} will be marked ${action?.type === "restore" ? "active" : "inactive"}.`}
+              ? `${action?.record.reference ?? action?.record.tgCode ?? "This payment"} will be permanently removed.`
+              : `${action?.record.reference ?? action?.record.tgCode ?? "This payment"} will be marked ${action?.type === "restore" ? "active" : "inactive"}.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

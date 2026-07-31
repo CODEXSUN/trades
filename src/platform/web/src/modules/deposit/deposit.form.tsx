@@ -107,10 +107,10 @@ function DepositFormBody({
             }
           />
         </WorkspaceFormField>
-        <WorkspaceFormField label="Name" required>
+        <WorkspaceFormField label="Name">
           <Input
             maxLength={200}
-            value={value.name}
+            value={value.name ?? ""}
             onChange={(event) => setValue((current) => ({ ...current, name: event.target.value }))}
           />
         </WorkspaceFormField>
@@ -125,10 +125,10 @@ function DepositFormBody({
             }
           />
         </WorkspaceFormField>
-        <WorkspaceFormField label="Reference" required>
+        <WorkspaceFormField label="Reference">
           <Input
             maxLength={180}
-            value={value.reference}
+            value={value.reference ?? ""}
             onChange={(event) =>
               setValue((current) => ({ ...current, reference: event.target.value }))
             }
@@ -166,8 +166,8 @@ function emptyDeposit(): DepositSavePayload {
     amount: 0,
     bankAccountId: 0,
     date: new Date().toISOString().slice(0, 10),
-    name: "",
-    reference: "",
+    name: null,
+    reference: null,
     status: "active",
     tgCode: ""
   };
@@ -186,5 +186,5 @@ function toPayload(record: DepositRecord): DepositSavePayload {
 }
 
 function recordLabel(value: DepositSavePayload) {
-  return value.reference.trim();
+  return value.tgCode.trim();
 }

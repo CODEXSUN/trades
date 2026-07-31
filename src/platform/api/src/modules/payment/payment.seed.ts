@@ -8,6 +8,7 @@ export const paymentSeed = {
 
 export function seedPaymentModule(database: Kysely<TradesDatabase>) {
   return sql`
-    UPDATE trades_payments SET tg_code=UPPER(TRIM(tg_code)),reference=TRIM(reference)
+    UPDATE trades_payments SET tg_code=UPPER(TRIM(tg_code)),
+      name=NULLIF(TRIM(name),''),reference=NULLIF(TRIM(reference),'')
   `.execute(database);
 }

@@ -25,8 +25,8 @@ type EntryRow = {
   amount: number | string;
   direction: CommissionDirection;
   id: number;
-  name: string;
-  reference: string;
+  name: string | null;
+  reference: string | null;
   settled_at: Date | string | null;
   settled_by: string | null;
   tg_code: string;

@@ -15,8 +15,8 @@ type PaymentRow = {
   bank_account_id: number | null;
   bank_code: string | null;
   id: number;
-  name: string;
-  reference: string;
+  name: string | null;
+  reference: string | null;
   status: PaymentStatus;
   tg_code: string;
   transaction_date: Date | string;
@@ -33,8 +33,8 @@ export class PaymentRepository {
       FROM trades_payments p
       LEFT JOIN trades_bank_accounts ba ON ba.id=p.bank_account_id
       WHERE (${filters.search ?? ""}='' OR LOWER(p.tg_code) LIKE ${term}
-        OR LOWER(p.bank) LIKE ${term} OR LOWER(p.name) LIKE ${term}
-        OR LOWER(p.reference) LIKE ${term})
+        OR LOWER(p.bank) LIKE ${term} OR LOWER(COALESCE(p.name,'')) LIKE ${term}
+        OR LOWER(COALESCE(p.reference,'')) LIKE ${term})
       ORDER BY p.transaction_date DESC,p.id DESC
     `.execute(this.database);
     return result.rows.map(mapPayment);
@@ -65,8 +65,8 @@ export class PaymentRepository {
         date: input.date,
         direction: "credit",
         entryType: "payment",
-        narration: `Payment ${input.reference} - ${input.name}`,
-        reference: input.reference,
+        narration: paymentNarration(input),
+        reference: input.reference ?? input.tgCode,
         sourceModule: "payment",
         sourceRecordId: paymentId
       });
@@ -97,8 +97,8 @@ export class PaymentRepository {
         date: input.date,
         direction: "credit",
         entryType: "payment",
-        narration: `Payment ${input.reference} - ${input.name}`,
-        reference: input.reference,
+        narration: paymentNarration(input),
+        reference: input.reference ?? input.tgCode,
         sourceModule: "payment",
         sourceRecordId: id
       });
@@ -130,6 +130,10 @@ export class PaymentRepository {
     });
     return record;
   }
+}
+
+function paymentNarration(input: PaymentPersistencePayload) {
+  return [`Payment ${input.tgCode}`, input.name, input.reference].filter(Boolean).join(" · ");
 }
 
 function mapPayment(row: PaymentRow): Payment {

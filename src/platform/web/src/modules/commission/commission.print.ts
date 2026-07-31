@@ -16,8 +16,8 @@ export function printCommissionReport(report: CommissionListResponse): boolean {
         <td>${escapePrintText(format(parseISO(entry.date), "dd-MMM-yyyy"))}</td>
         <td>${escapePrintText(entry.direction === "deposit" ? "Deposit" : "Withdraw")}</td>
         <td>${escapePrintText(entry.tgCode)}</td>
-        <td>${escapePrintText(entry.name)}</td>
-        <td>${escapePrintText(entry.reference)}</td>
+        <td>${escapePrintText(entry.name ?? "")}</td>
+        <td>${escapePrintText(entry.reference ?? "")}</td>
         <td class="number">${formatPrintMoney(entry.amount)}</td>
         ${variants
           .map(

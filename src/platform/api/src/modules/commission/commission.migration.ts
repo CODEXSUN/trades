@@ -38,8 +38,8 @@ export async function migrateCommissionModule(database: Kysely<TradesDatabase>) 
       source_record_id INT NOT NULL,
       transaction_date DATE NOT NULL,
       tg_code VARCHAR(80) NOT NULL,
-      name VARCHAR(200) NOT NULL,
-      reference VARCHAR(180) NOT NULL,
+      name VARCHAR(200) NULL,
+      reference VARCHAR(180) NULL,
       amount DECIMAL(18,2) NOT NULL,
       settled_at DATETIME NULL,
       settled_by VARCHAR(190) NULL,
@@ -72,6 +72,11 @@ export async function migrateCommissionModule(database: Kysely<TradesDatabase>) 
         REFERENCES trades_commission_variants(id)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
   `
+    )
+    .execute(database);
+  await sql
+    .raw(
+      "ALTER TABLE trades_commission_entries MODIFY COLUMN name VARCHAR(200) NULL, MODIFY COLUMN reference VARCHAR(180) NULL"
     )
     .execute(database);
 

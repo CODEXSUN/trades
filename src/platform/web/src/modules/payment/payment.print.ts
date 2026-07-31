@@ -9,8 +9,8 @@ export function printPaymentReport(records: PaymentRecord[]): boolean {
         <td>${escapePrintText(format(parseISO(record.date), "dd-MMM-yyyy"))}</td>
         <td>${escapePrintText(record.tgCode)}</td>
         <td>${escapePrintText(record.bank)}</td>
-        <td>${escapePrintText(record.name)}</td>
-        <td>${escapePrintText(record.reference)}</td>
+        <td>${escapePrintText(record.name ?? "")}</td>
+        <td>${escapePrintText(record.reference ?? "")}</td>
         <td class="number">${formatPrintMoney(record.amount)}</td>
         <td>${escapePrintText(record.status === "active" ? "Active" : "Inactive")}</td>
       </tr>`

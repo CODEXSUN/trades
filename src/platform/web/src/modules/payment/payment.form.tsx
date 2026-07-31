@@ -107,10 +107,10 @@ function PaymentFormBody({
             }
           />
         </WorkspaceFormField>
-        <WorkspaceFormField label="Name" required>
+        <WorkspaceFormField label="Name">
           <Input
             maxLength={200}
-            value={value.name}
+            value={value.name ?? ""}
             onChange={(event) => setValue((current) => ({ ...current, name: event.target.value }))}
           />
         </WorkspaceFormField>
@@ -125,10 +125,10 @@ function PaymentFormBody({
             }
           />
         </WorkspaceFormField>
-        <WorkspaceFormField label="Reference" required>
+        <WorkspaceFormField label="Reference">
           <Input
             maxLength={180}
-            value={value.reference}
+            value={value.reference ?? ""}
             onChange={(event) =>
               setValue((current) => ({ ...current, reference: event.target.value }))
             }
@@ -146,7 +146,7 @@ function PaymentFormBody({
       <WorkspaceFormFooter
         className="mt-6 border-t pt-4"
         onCancel={onCancel}
-        primaryLabel={initialValue.reference ? "Update payment" : "Save payment"}
+        primaryLabel={initialValue.tgCode ? "Update payment" : "Save payment"}
         primaryLoading={loading}
         primaryProps={{
           children: (
@@ -166,8 +166,8 @@ function emptyPayment(): PaymentSavePayload {
     amount: 0,
     bankAccountId: 0,
     date: new Date().toISOString().slice(0, 10),
-    name: "",
-    reference: "",
+    name: null,
+    reference: null,
     status: "active",
     tgCode: ""
   };
