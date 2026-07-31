@@ -135,16 +135,27 @@ export class CommissionRepository {
     return this.findVariant(id);
   }
 
-  async settle(direction: CommissionDirection, id: number, actorEmail: string) {
-    await sql`UPDATE trades_commission_entries SET settled_at=CURRENT_TIMESTAMP,settled_by=${actorEmail} WHERE id=${id} AND direction=${direction} AND verified_at IS NOT NULL AND settled_at IS NULL`.execute(
+  async setSettled(
+    direction: CommissionDirection,
+    id: number,
+    actorEmail: string,
+    settled: boolean
+  ) {
+    await sql`UPDATE trades_commission_entries SET settled_at=${settled ? new Date() : null},
+      settled_by=${settled ? actorEmail : null} WHERE id=${id} AND direction=${direction}`.execute(
       this.database
     );
     return this.findEntry(id, direction);
   }
 
-  async verify(direction: CommissionDirection, id: number, actorEmail: string) {
-    await sql`UPDATE trades_commission_entries SET verified_at=CURRENT_TIMESTAMP,verified_by=${actorEmail}
-      WHERE id=${id} AND direction=${direction} AND verified_at IS NULL AND settled_at IS NULL`.execute(
+  async setVerified(
+    direction: CommissionDirection,
+    id: number,
+    actorEmail: string,
+    verified: boolean
+  ) {
+    await sql`UPDATE trades_commission_entries SET verified_at=${verified ? new Date() : null},
+      verified_by=${verified ? actorEmail : null} WHERE id=${id} AND direction=${direction}`.execute(
       this.database
     );
     return this.findEntry(id, direction);

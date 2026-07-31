@@ -27,42 +27,6 @@ export function DepositList({
 }) {
   const columns: ColumnDef<DepositRecord>[] = [
     {
-      accessorKey: "verifiedAt",
-      cell: ({ row }) =>
-        row.original.verifiedAt ? (
-          <WorkspaceStatusBadge label="Verified" tone="success" />
-        ) : (
-          <Button
-            disabled={pendingId === row.original.id || Boolean(row.original.settledAt)}
-            onClick={() => onVerify(row.original)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <CircleCheck className="size-4" /> Verify
-          </Button>
-        ),
-      header: "Verification"
-    },
-    {
-      accessorKey: "settledAt",
-      cell: ({ row }) =>
-        row.original.settledAt ? (
-          <WorkspaceStatusBadge label="Settled" tone="neutral" />
-        ) : (
-          <Button
-            disabled={pendingId === row.original.id || !row.original.verifiedAt}
-            onClick={() => onSettle(row.original)}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <BadgeCheck className="size-4" /> Settle
-          </Button>
-        ),
-      header: "Settlement"
-    },
-    {
       accessorKey: "date",
       cell: ({ row }) => format(parseISO(row.original.date), "dd-MMM-yyyy"),
       header: "Date"
@@ -128,6 +92,49 @@ export function DepositList({
       header: () => <div className="text-center">Actions</div>,
       id: "actions",
       size: 96
+    },
+    {
+      accessorKey: "verifiedAt",
+      cell: ({ row }) => (
+        <Button
+          aria-label={row.original.verifiedAt ? "Clear verification" : "Mark verified"}
+          disabled={pendingId === row.original.id || Boolean(row.original.settledAt)}
+          onClick={(event) => {
+            event.stopPropagation();
+            onVerify(row.original);
+          }}
+          size="icon"
+          title={row.original.verifiedAt ? "Clear verification" : "Mark verified"}
+          type="button"
+          variant={row.original.verifiedAt ? "default" : "outline"}
+        >
+          <CircleCheck className="size-4" />
+        </Button>
+      ),
+      header: "Verified"
+    },
+    {
+      accessorKey: "settledAt",
+      cell: ({ row }) => (
+        <Button
+          aria-label={row.original.settledAt ? "Clear settlement" : "Mark settled"}
+          disabled={
+            pendingId === row.original.id ||
+            (!row.original.verifiedAt && !row.original.settledAt)
+          }
+          onClick={(event) => {
+            event.stopPropagation();
+            onSettle(row.original);
+          }}
+          size="icon"
+          title={row.original.settledAt ? "Clear settlement" : "Mark settled"}
+          type="button"
+          variant={row.original.settledAt ? "default" : "outline"}
+        >
+          <BadgeCheck className="size-4" />
+        </Button>
+      ),
+      header: "Settled"
     }
   ];
 

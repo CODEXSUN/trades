@@ -132,15 +132,15 @@ export class DepositRepository {
     return this.find(id);
   }
 
-  async verify(id: number, actorEmail: string) {
-    await sql`UPDATE trades_deposits SET verified_at=CURRENT_TIMESTAMP,verified_by=${actorEmail}
-      WHERE id=${id} AND verified_at IS NULL AND settled_at IS NULL`.execute(this.database);
+  async setVerified(id: number, actorEmail: string, verified: boolean) {
+    await sql`UPDATE trades_deposits SET verified_at=${verified ? new Date() : null},
+      verified_by=${verified ? actorEmail : null} WHERE id=${id}`.execute(this.database);
     return this.find(id);
   }
 
-  async settle(id: number, actorEmail: string) {
-    await sql`UPDATE trades_deposits SET settled_at=CURRENT_TIMESTAMP,settled_by=${actorEmail}
-      WHERE id=${id} AND verified_at IS NOT NULL AND settled_at IS NULL`.execute(this.database);
+  async setSettled(id: number, actorEmail: string, settled: boolean) {
+    await sql`UPDATE trades_deposits SET settled_at=${settled ? new Date() : null},
+      settled_by=${settled ? actorEmail : null} WHERE id=${id}`.execute(this.database);
     return this.find(id);
   }
 

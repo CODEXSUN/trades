@@ -72,7 +72,7 @@ export function DepositWorkspace() {
     onError: showDepositError("Unable to update deposit"),
     onSuccess: async (record, action) => {
       await refreshDeposits(queryClient);
-      toast.success(depositActionMessage(action.type), {
+      toast.success(depositActionMessage(action.type, record), {
         description: record.reference ?? record.tgCode
       });
       setPendingAction(null);
@@ -168,10 +168,12 @@ export function DepositWorkspace() {
         onEdit={setEditing}
         onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
         onRestore={(record) => setPendingAction({ record, type: "restore" })}
-        onSettle={(record) => setPendingAction({ record, type: "settle" })}
+        onSettle={(record) => lifecycleMutation.mutate({ record, type: "settle" })}
         onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
-        onVerify={(record) => setPendingAction({ record, type: "verify" })}
-        pendingId={lifecycleMutation.isPending ? (pendingAction?.record.id ?? null) : null}
+        onVerify={(record) => lifecycleMutation.mutate({ record, type: "verify" })}
+        pendingId={
+          lifecycleMutation.isPending ? (lifecycleMutation.variables?.record.id ?? null) : null
+        }
         records={pageDeposits}
       />
       <DepositPageTotals
@@ -304,10 +306,12 @@ function showDepositError(title: string) {
     });
 }
 
-function depositActionMessage(type: DepositAction["type"]) {
+function depositActionMessage(type: DepositAction["type"], record: DepositRecord) {
   if (type === "force-delete") return "Deposit force deleted";
-  if (type === "verify") return "Deposit verified";
-  if (type === "settle") return "Deposit settled";
+  if (type === "verify")
+    return record.verifiedAt ? "Deposit verified" : "Deposit verification cleared";
+  if (type === "settle")
+    return record.settledAt ? "Deposit settled" : "Deposit settlement cleared";
   return type === "restore" ? "Deposit restored" : "Deposit suspended";
 }
 

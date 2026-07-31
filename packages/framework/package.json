@@ -1,6 +1,6 @@
 {
   "name": "@codexsun/framework",
-  "version": "1.0.20",
+  "version": "1.0.21",
   "private": true,
   "description": "Trades-owned framework runtime and stable application contracts",
   "type": "module",

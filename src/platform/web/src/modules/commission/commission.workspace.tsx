@@ -6,15 +6,7 @@ import {
   Button,
   WorkspaceDatePicker,
   WorkspaceFormField,
-  WorkspacePage,
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
+  WorkspacePage
 } from "@codexsun/ui";
 import { CommissionForm } from "./commission.form";
 import { TradesFormBanner } from "../../shared/form-banner";
@@ -37,26 +29,36 @@ export function CommissionWorkspace({ direction }: { direction: CommissionDirect
   const [dateTo, setDateTo] = useState("");
   const [lifecycle, setLifecycle] = useState<CommissionLifecycleFilter>("open");
   const [settings, setSettings] = useState(false);
-  const [pending, setPending] = useState<CommissionAction | null>(null);
   const query = useCommissions(direction, {
     ...(dateFrom ? { dateFrom } : {}),
     ...(dateTo ? { dateTo } : {}),
     lifecycle
   });
   const refresh = () => client.invalidateQueries({ queryKey: commissionQueryKey });
-  const settle = useMutation({
+  const lifecycleMutation = useMutation({
     mutationFn: (action: CommissionAction) =>
       action.type === "verify"
         ? verifyCommission(direction, action.record.id)
         : settleCommission(direction, action.record.id),
     onSuccess: async (record, action) => {
       await refresh();
-      setPending(null);
-      toast.success(action.type === "verify" ? "Commission verified" : "Commission settled", {
+      const title =
+        action.type === "verify"
+          ? record.verifiedAt
+            ? "Commission verified"
+            : "Commission verification cleared"
+          : record.settledAt
+            ? "Commission settled"
+            : "Commission settlement cleared";
+      toast.success(title, {
         description:
           action.type === "verify"
-            ? `${record.reference ?? record.tgCode} can now be settled.`
-            : `${record.reference ?? record.tgCode} was removed from the default Open list.`
+            ? record.verifiedAt
+              ? `${record.reference ?? record.tgCode} can now be settled.`
+              : `${record.reference ?? record.tgCode} is no longer verified.`
+            : record.settledAt
+              ? `${record.reference ?? record.tgCode} was removed from the default Open list.`
+              : `${record.reference ?? record.tgCode} returned to the Open list.`
       });
     },
     onError: notify("Unable to update commission lifecycle")
@@ -131,11 +133,14 @@ export function CommissionWorkspace({ direction }: { direction: CommissionDirect
       ) : null}
       <CommissionList
         loading={query.isFetching && !data}
-        onSettle={(record) => setPending({ record, type: "settle" })}
-        onVerify={(record) => setPending({ record, type: "verify" })}
-        pendingId={settle.isPending ? (pending?.record.id ?? null) : null}
+        onSettle={(record) => lifecycleMutation.mutate({ record, type: "settle" })}
+        onVerify={(record) => lifecycleMutation.mutate({ record, type: "verify" })}
+        pendingId={
+          lifecycleMutation.isPending
+            ? (lifecycleMutation.variables?.record.id ?? null)
+            : null
+        }
         records={data?.entries ?? []}
-        settlingId={settle.isPending && pending?.type === "settle" ? pending.record.id : null}
         variants={(data?.variants ?? []).filter((v) => v.status === "active")}
       />
       <div className="grid gap-2 rounded-md border border-border/70 bg-card px-4 py-3 md:grid-cols-4">
@@ -159,31 +164,6 @@ export function CommissionWorkspace({ direction }: { direction: CommissionDirect
         open={settings}
         variants={data?.variants ?? []}
       />
-      <AlertDialog open={pending !== null} onOpenChange={(open) => !open && setPending(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pending?.type === "verify" ? "Verify this commission?" : "Settle this commission?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {pending
-                ? pending.type === "verify"
-                  ? `${pending.record.reference ?? pending.record.tgCode} will be marked verified and can then be settled.`
-                  : `${pending.record.reference ?? pending.record.tgCode} will be settled and hidden from the default Open ${direction} list.`
-                : "Confirm this entry."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={settle.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={settle.isPending}
-              onClick={() => pending && settle.mutate(pending)}
-            >
-              {pending?.type === "verify" ? "Verify" : "Settle"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </WorkspacePage>
   );
 }

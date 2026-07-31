@@ -79,7 +79,7 @@ export function PaymentWorkspace() {
     onError: showPaymentError("Unable to update payment"),
     onSuccess: async (record, action) => {
       await queryClient.invalidateQueries({ queryKey: paymentQueryKey });
-      toast.success(paymentActionMessage(action.type), {
+      toast.success(paymentActionMessage(action.type, record), {
         description: record.reference ?? record.tgCode
       });
       setPendingAction(null);
@@ -174,10 +174,12 @@ export function PaymentWorkspace() {
         onEdit={setEditing}
         onForceDelete={(record) => setPendingAction({ record, type: "force-delete" })}
         onRestore={(record) => setPendingAction({ record, type: "restore" })}
-        onSettle={(record) => setPendingAction({ record, type: "settle" })}
+        onSettle={(record) => lifecycleMutation.mutate({ record, type: "settle" })}
         onSuspend={(record) => setPendingAction({ record, type: "suspend" })}
-        onVerify={(record) => setPendingAction({ record, type: "verify" })}
-        pendingId={lifecycleMutation.isPending ? (pendingAction?.record.id ?? null) : null}
+        onVerify={(record) => lifecycleMutation.mutate({ record, type: "verify" })}
+        pendingId={
+          lifecycleMutation.isPending ? (lifecycleMutation.variables?.record.id ?? null) : null
+        }
         records={visiblePayments}
       />
       <PaymentPageTotals
@@ -306,10 +308,12 @@ function showPaymentError(title: string) {
     });
 }
 
-function paymentActionMessage(type: PaymentAction["type"]) {
+function paymentActionMessage(type: PaymentAction["type"], record: PaymentRecord) {
   if (type === "force-delete") return "Payment force deleted";
-  if (type === "verify") return "Payment verified";
-  if (type === "settle") return "Payment settled";
+  if (type === "verify")
+    return record.verifiedAt ? "Payment verified" : "Payment verification cleared";
+  if (type === "settle")
+    return record.settledAt ? "Payment settled" : "Payment settlement cleared";
   return type === "restore" ? "Payment restored" : "Payment suspended";
 }
 

@@ -67,11 +67,17 @@ export class CommissionService {
     await this.context.authorize("trades.commission.verify");
     const current = await this.repository.findEntry(Number(id), direction);
     if (!current) throw AppError.notFound("Commission entry was not found.");
-    if (current.settledAt) throw AppError.conflict("Settled commission cannot be verified again.");
-    if (current.verifiedAt) throw AppError.conflict("Commission entry is already verified.");
-    const record = (await this.repository.verify(direction, current.id, this.context.actorEmail))!;
+    if (current.settledAt)
+      throw AppError.conflict("Unsettle the commission before clearing verification.");
+    const verified = !current.verifiedAt;
+    const record = (await this.repository.setVerified(
+      direction,
+      current.id,
+      this.context.actorEmail,
+      verified
+    ))!;
     await this.context.audit({
-      action: "verified",
+      action: verified ? "verified" : "verification-cleared",
       moduleKey: "trades.commission",
       recordId: record.id,
       recordLabel: `${record.direction} - ${record.reference ?? record.tgCode}`,
@@ -87,11 +93,17 @@ export class CommissionService {
       throw AppError.notFound(
         `${direction === "deposit" ? "Deposit" : "Withdrawal"} commission was not found.`
       );
-    if (!current.verifiedAt) throw AppError.conflict("Verify the commission before settling it.");
-    if (current.settledAt) throw AppError.conflict("Commission entry is already settled.");
-    const record = (await this.repository.settle(direction, current.id, this.context.actorEmail))!;
+    const settled = !current.settledAt;
+    if (settled && !current.verifiedAt)
+      throw AppError.conflict("Verify the commission before settling it.");
+    const record = (await this.repository.setSettled(
+      direction,
+      current.id,
+      this.context.actorEmail,
+      settled
+    ))!;
     await this.context.audit({
-      action: "settled",
+      action: settled ? "settled" : "settlement-cleared",
       moduleKey: "trades.commission",
       recordId: record.id,
       recordLabel: `${record.direction} - ${record.reference ?? record.tgCode}`,
