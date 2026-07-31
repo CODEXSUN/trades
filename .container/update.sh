@@ -145,7 +145,7 @@ done
 project="$(file_value "$DEPLOY_ENV" TRADES_COMPOSE_PROJECT trades)"
 api_container="$(file_value "$DEPLOY_ENV" TRADES_API_CONTAINER_NAME trades-api)"
 web_container="$(file_value "$DEPLOY_ENV" TRADES_WEB_CONTAINER_NAME trades-web)"
-network="$(file_value "$DEPLOY_ENV" TRADES_NETWORK trades-network)"
+network="$(file_value "$DEPLOY_ENV" TRADES_NETWORK cxapp-network)"
 network_external="$(file_value "$DEPLOY_ENV" TRADES_NETWORK_EXTERNAL false)"
 image_registry="$(file_value "$DEPLOY_ENV" TRADES_IMAGE_REGISTRY trades)"
 image_tag="$(file_value "$DEPLOY_ENV" TRADES_IMAGE_TAG local)"

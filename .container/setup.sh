@@ -30,12 +30,12 @@ Included:
   - Reused existing Docker network and MariaDB, or Trades-owned infrastructure
 
 Excluded:
-  - CXApp, Billing, DevKit, Mail, TMApp, Trades, Redis, Media, and all other stacks
+  - CXApp, Billing, DevKit, Mail, TMApp, Redis, Media, and all other stacks
 
 The setup builds only this self-contained Trades repository. It asks whether
 to reuse an existing Docker network and running MariaDB container or create a
-dedicated Trades network and MariaDB. Trades uses only MariaDB; optional
-Redis and Media containers are detected and left untouched.
+dedicated Trades network and MariaDB. Trades uses only MariaDB and does not
+inspect or depend on Redis, Media, or another application stack.
 If dedicated Trades MariaDB data already exists, setup separately asks
 whether to reuse or freshly recreate only the Trades database volume.
 EOF
@@ -285,9 +285,9 @@ select_infrastructure_mode() {
   local answer
   while true; do
     read -r -p \
-      "Reuse an existing Docker network and MariaDB, or create dedicated Trades infrastructure? [reuse/dedicated] " \
+      "Reuse CXApp network and MariaDB, or create dedicated Trades infrastructure? [reuse/dedicated] " \
       answer
-    case "${answer:-dedicated}" in
+    case "${answer:-reuse}" in
       reuse|Reuse|REUSE)
         printf 'shared'
         return
@@ -304,14 +304,31 @@ select_infrastructure_mode() {
 }
 
 prepare_shared_infrastructure() {
-  local mariadb network redis media root_password name
+  local mariadb network root_password shared_env shared_user shared_password
   mariadb="$(file_value "$DEPLOY_ENV" TRADES_SHARED_MARIADB_CONTAINER_NAME cxapp-mariadb)"
-  network="$(file_value "$DEPLOY_ENV" TRADES_NETWORK trades-network)"
-  redis="$(file_value "$DEPLOY_ENV" TRADES_SHARED_REDIS_CONTAINER_NAME cxapp-redis)"
-  media="$(file_value "$DEPLOY_ENV" TRADES_SHARED_MEDIA_CONTAINER_NAME cxapp-media)"
-  for name in "$mariadb" "$redis" "$media"; do
-    safe_docker_name "$name"
-  done
+  network="$(file_value "$DEPLOY_ENV" TRADES_NETWORK cxapp-network)"
+  shared_env="$(file_value "$DEPLOY_ENV" TRADES_SHARED_MARIADB_ENV_FILE)"
+  if [[ -n "$shared_env" && "$shared_env" != /* ]]; then
+    shared_env="$CONTAINER_DIR/$shared_env"
+  fi
+  if [[ -n "$shared_env" ]]; then
+    [[ -f "$shared_env" ]] || {
+      echo "CXApp deployment environment was not found: $shared_env" >&2
+      exit 69
+    }
+    shared_user="$(file_value "$shared_env" DB_USER)"
+    shared_password="$(file_value "$shared_env" DB_PASSWORD)"
+    root_password="$(file_value "$shared_env" MARIADB_ROOT_PASSWORD)"
+    [[ -n "$shared_user" && -n "$shared_password" && -n "$root_password" ]] || {
+      echo "CXApp DB_USER, DB_PASSWORD, and MARIADB_ROOT_PASSWORD are required in $shared_env." >&2
+      exit 78
+    }
+    set_file_value "$DEPLOY_ENV" DB_USER "$shared_user"
+    set_file_value "$DEPLOY_ENV" DB_PASSWORD "$shared_password"
+    set_file_value "$DEPLOY_ENV" TRADES_SHARED_MARIADB_ROOT_PASSWORD "$root_password"
+    echo "Synchronized protected MariaDB credentials from the CXApp deployment environment."
+  fi
+  safe_docker_name "$mariadb"
   container_is_running "$mariadb" || {
     echo "Existing MariaDB container is not running: $mariadb" >&2
     exit 69
@@ -320,14 +337,6 @@ prepare_shared_infrastructure() {
     echo "Existing Docker network was not found: $network" >&2
     exit 69
   }
-  for name in "$redis" "$media"; do
-    if container_is_running "$name"; then
-      echo "Detected shared container (left untouched; Trades does not consume it): $name"
-    else
-      echo "Shared optional container is unavailable and is not required by Trades: $name"
-    fi
-  done
-
   root_password="$(file_value "$DEPLOY_ENV" TRADES_SHARED_MARIADB_ROOT_PASSWORD)"
   [[ -n "$root_password" ]] || {
     echo "Shared MariaDB root password is unavailable." >&2
@@ -344,15 +353,11 @@ configure_shared_infrastructure() {
   echo "Available Docker networks:"
   docker network ls --format '  {{.Name}}' || true
   prompt_setting "$DEPLOY_ENV" TRADES_SHARED_MARIADB_CONTAINER_NAME \
-    "Existing MariaDB container name" cxapp-mariadb
-  prompt_setting "$DEPLOY_ENV" TRADES_NETWORK "Existing Docker network" trades-network
+    "CXApp MariaDB container name" cxapp-mariadb
+  prompt_setting "$DEPLOY_ENV" TRADES_NETWORK "CXApp Docker network" cxapp-network
   set_file_value "$DEPLOY_ENV" TRADES_NETWORK_EXTERNAL true
-  prompt_setting "$DEPLOY_ENV" TRADES_SHARED_REDIS_CONTAINER_NAME \
-    "Shared Redis container name (detected only)" cxapp-redis
-  prompt_setting "$DEPLOY_ENV" TRADES_SHARED_MEDIA_CONTAINER_NAME \
-    "Shared Media container name (detected only)" cxapp-media
-  prompt_secret "$DEPLOY_ENV" TRADES_SHARED_MARIADB_ROOT_PASSWORD \
-    "Shared MariaDB root password"
+  prompt_setting "$DEPLOY_ENV" TRADES_SHARED_MARIADB_ENV_FILE \
+    "CXApp protected deployment env" ../../cxapp/.container/deploy.env
 }
 
 configure_dedicated_infrastructure() {
@@ -526,7 +531,7 @@ SQL
 
 connect_shared_mariadb() {
   local network container
-  network="$(file_value "$DEPLOY_ENV" TRADES_NETWORK trades-network)"
+  network="$(file_value "$DEPLOY_ENV" TRADES_NETWORK cxapp-network)"
   container="$(file_value "$DEPLOY_ENV" TRADES_SHARED_MARIADB_CONTAINER_NAME cxapp-mariadb)"
   safe_docker_name "$network"
   safe_docker_name "$container"
@@ -590,7 +595,7 @@ echo "  Infrastructure: $infrastructure_label"
 echo "  MariaDB data: $database_mode"
 echo "  Images: internal Framework/UI -> Trades Platform API/Web"
 echo "  Runtime: Trades API, Trades Web, selected MariaDB"
-echo "  Excluded: CXApp, TMApp, Billing, DevKit, Mail, Trades, Redis, and Media"
+echo "  Excluded: CXApp, TMApp, Billing, DevKit, Mail, Redis, and Media"
 read -r -p "Build and apply this standalone Trades installation? [Y/n] " confirmation
 case "${confirmation:-Y}" in
   y|Y|yes|Yes|YES) ;;
@@ -621,4 +626,3 @@ echo
 echo "Trades standalone installation completed."
 echo "Web: http://$(file_value "$DEPLOY_ENV" TRADES_BIND_ADDRESS 127.0.0.1):$(file_value "$DEPLOY_ENV" TRADES_WEB_HOST_PORT 7060)/"
 echo "API health: http://$(file_value "$DEPLOY_ENV" TRADES_BIND_ADDRESS 127.0.0.1):$(file_value "$DEPLOY_ENV" TRADES_API_HOST_PORT 7050)/health"
-

@@ -2,6 +2,7 @@
 
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { platform } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { createInterface } from "node:readline";
 
@@ -77,9 +78,7 @@ function bumpVersion() {
     return;
   }
 
-  for (const file of packageFiles()) updatePackage(file, currentVersion, nextVersion);
-  updateLockfile(currentVersion, nextVersion);
-  updateChangelog(nextVersion, title, databaseUpdate);
+  applyVersionBump(currentVersion, nextVersion, title, databaseUpdate);
 
   console.log(`Bumped ${currentVersion} -> ${nextVersion}`);
   console.log(`Database update: ${databaseUpdate ? "Yes" : "No"}`);
@@ -129,40 +128,102 @@ function checkVersions() {
 async function githubNow() {
   const dryRun = args.includes("--dry-run");
   const allowMutation = args.includes("--yes");
-  const version = rootVersion();
-  const entry = latestEntry(version);
-  const defaultSubject = `#${String(reference(version)).padStart(2, "0")} - ${entry.title}`;
-  const subject = option("--message") ?? defaultSubject;
+  const currentVersion = rootVersion();
+  const proposedVersion = nextPatch(currentVersion);
+  const currentEntry = latestEntry(currentVersion);
+  const defaultTitle = option("--title") ?? "Version update";
+  let version = currentVersion;
+  let subject = option("--message");
+  let shouldBump = !args.includes("--no-bump");
+  let title = defaultTitle;
+  let files = changedFiles();
+
+  console.log(`Repository: ${readJson(join(root, "package.json")).name}`);
+  console.log(`Version:    ${currentVersion}`);
+  console.log(`Next patch: ${proposedVersion}`);
+  console.log(`Changes:    ${files.length}`);
+  files.forEach((file) => console.log(`  ${file}`));
+
+  if (dryRun) {
+    const previewSubject =
+      subject ??
+      (shouldBump
+        ? `#${String(reference(proposedVersion)).padStart(2, "0")} - ${defaultTitle}`
+        : `#${String(reference(currentVersion)).padStart(2, "0")} - ${currentEntry.title}`);
+    console.log(`Version bump: ${shouldBump ? `${currentVersion} -> ${proposedVersion}` : "No"}`);
+    if (shouldBump) console.log(`Title:        ${defaultTitle}`);
+    console.log(`Subject:      ${previewSubject}`);
+    console.log("Dry run only. No version bump, pull, add, commit, or push was performed.");
+    return;
+  }
+
+  if (!allowMutation) {
+    await withPrompt(async (ask) => {
+      const bumpAnswer = await ask(
+        `Bump version ${currentVersion} -> ${proposedVersion}? [Y/n] `,
+        "yes"
+      );
+      shouldBump = isYes(bumpAnswer);
+      if (shouldBump) {
+        title =
+          (await ask(`Version title [${defaultTitle}]: `, defaultTitle)).trim() || defaultTitle;
+      }
+    });
+  }
+
+  if (shouldBump) {
+    applyVersionBump(currentVersion, proposedVersion, title, databaseUpdateMode());
+    version = proposedVersion;
+    subject = subject ?? `#${String(reference(version)).padStart(2, "0")} - ${title}`;
+    console.log(`Bumped ${currentVersion} -> ${version}`);
+  } else {
+    subject =
+      subject ?? `#${String(reference(currentVersion)).padStart(2, "0")} - ${currentEntry.title}`;
+  }
 
   if (!/^#\d{2,}\s+-\s+\S/u.test(subject)) {
     throw new Error('Commit subject must use "#00 - message" format.');
   }
 
-  const status = git(["status", "--porcelain"], true);
-  const files = status ? status.split(/\r?\n/u).filter(Boolean) : [];
-  console.log(`Repository: ${readJson(join(root, "package.json")).name}`);
-  console.log(`Version:    ${version}`);
-  console.log(`Subject:    ${subject}`);
-  console.log(`Changes:    ${files.length}`);
-  files.forEach((file) => console.log(`  ${file}`));
+  files = changedFiles();
+  console.log(`Subject: ${subject}`);
+  console.log(`Files:   ${files.length}`);
 
-  if (dryRun) {
-    console.log("Dry run only. No pull, add, commit, or push was performed.");
-    return;
-  }
-
-  if (!allowMutation && !(await confirm("Pull, stage all changes, commit, and push? [y/N] "))) {
+  if (
+    !allowMutation &&
+    !(await withPrompt((ask) =>
+      ask("Continue with pull, stage, commit, and push? [y/N] ", "no").then(isYes)
+    ))
+  ) {
     throw new Error("Cancelled.");
   }
 
   const upstream = gitQuiet(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"]);
-  if (upstream) git(["pull", "--rebase", "--autostash"]);
+  if (upstream) {
+    git(["fetch", "--quiet"]);
+    const behind = Number(gitQuiet(["rev-list", "--count", `HEAD..${upstream}`]) || 0);
+    if (behind > 0) git(["pull", "--rebase", "--autostash"]);
+    else console.log("Already up to date.");
+  } else {
+    console.log("No upstream branch found; skipping pull.");
+  }
 
   git(["add", "-A"]);
   const staged = git(["diff", "--cached", "--name-only"], true);
   if (staged) git(["commit", "-m", subject]);
   else console.log("No staged changes; skipping commit.");
   git(["push"]);
+}
+
+function applyVersionBump(currentVersion, nextVersion, title, databaseUpdate) {
+  for (const file of packageFiles()) updatePackage(file, currentVersion, nextVersion);
+  updateLockfile(currentVersion, nextVersion);
+  updateChangelog(nextVersion, title, databaseUpdate);
+}
+
+function changedFiles() {
+  const status = git(["status", "--porcelain"], true);
+  return status ? status.split(/\r?\n/u).filter(Boolean) : [];
 }
 
 function rootVersion() {
@@ -324,18 +385,58 @@ function gitQuiet(gitArgs) {
   }
 }
 
-async function confirm(question) {
+async function withPrompt(callback) {
+  if (!process.stdin.isTTY && platform() === "win32") {
+    return callback(askWindowsModal);
+  }
   if (!process.stdin.isTTY) {
     throw new Error("Interactive terminal required; pass --yes only after reviewing --dry-run.");
   }
   const readline = createInterface({ input: process.stdin, output: process.stdout });
   try {
-    return await new Promise((resolveAnswer) => {
-      readline.question(question, (answer) =>
-        resolveAnswer(["y", "yes"].includes(answer.trim().toLowerCase()))
-      );
+    return await callback((question, defaultValue = "") => {
+      return new Promise((resolveAnswer) => {
+        readline.question(question, (answer) => resolveAnswer(answer || defaultValue));
+      });
     });
   } finally {
     readline.close();
   }
+}
+
+function askWindowsModal(question, defaultValue = "") {
+  const confirmation = /\[[Yy]\/[Nn]\]\s*$/u.test(question);
+  if (confirmation) {
+    const script = [
+      "Add-Type -AssemblyName System.Windows.Forms",
+      `$answer = [System.Windows.Forms.MessageBox]::Show(${quotePowerShell(
+        question.replace(/\s*\[[Yy]\/[Nn]\]\s*$/u, "")
+      )}, 'Trades GitHub Release', 'YesNo', 'Question')`,
+      "if ($answer -eq 'Yes') { 'yes' } else { 'no' }"
+    ].join("; ");
+    return powershellModal(script);
+  }
+
+  const script = [
+    "Add-Type -AssemblyName Microsoft.VisualBasic",
+    `[Microsoft.VisualBasic.Interaction]::InputBox(${quotePowerShell(
+      question
+    )}, 'Trades GitHub Release', ${quotePowerShell(defaultValue)})`
+  ].join("; ");
+  return powershellModal(script);
+}
+
+function powershellModal(script) {
+  return execFileSync("powershell.exe", ["-NoProfile", "-STA", "-Command", script], {
+    encoding: "utf8",
+    windowsHide: false
+  }).trim();
+}
+
+function quotePowerShell(value) {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function isYes(value) {
+  return ["y", "yes"].includes(value.trim().toLowerCase());
 }

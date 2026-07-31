@@ -1,8 +1,8 @@
 # Changelog
 
-Current version: 1.0.17
-Release tag: v-1.0.17
-Changelog label: v 1.0.17
+Current version: 1.0.18
+Release tag: v-1.0.18
+Changelog label: v 1.0.18
 
 ## Unreleased - Trades conversion
 
@@ -10,6 +10,18 @@ Changelog label: v 1.0.17
 - Retained Platform local users, roles, permissions, and assignments.
 - Composed Deposit, Payment, Bank Account, and Commission from migration through UI.
 - Removed the copied external sales and identity integration features.
+
+## v-1.0.18
+
+### [v 1.0.18] 2026-07-31 5:42 am - deploment rework
+
+#### Database Changes
+
+- Database update: No.
+
+#### App Codebase Changes
+
+- Bumped repository version to 1.0.18.
 
 ## v-1.0.17
 
