@@ -1,8 +1,8 @@
 # Changelog
 
-Current version: 1.0.21
-Release tag: v-1.0.21
-Changelog label: v 1.0.21
+Current version: 1.0.22
+Release tag: v-1.0.22
+Changelog label: v 1.0.22
 
 ## Unreleased - Trades conversion
 
@@ -11,17 +11,33 @@ Changelog label: v 1.0.21
 - Composed Deposit, Payment, Bank Account, and Commission from migration through UI.
 - Removed the copied external sales and identity integration features.
 
+## v-1.0.22
+
+### [v 1.0.22] 2026-08-01 11:38 am - Version update
+
+#### Database Changes
+
+- Database update: Yes.
+
+#### App Codebase Changes
+
+- Bumped repository version to 1.0.22.
+
 ## v-1.0.21
 
 ### [v 1.0.21] 2026-07-31 7:00 pm - Version update
 
 #### Database Changes
 
-- Database update: No.
+- Database update: Yes.
+- Consolidated generated `LEG-*` bank-account chains into their canonical accounts,
+  preserving Deposit, Payment, ledger, and transfer links.
 
 #### App Codebase Changes
 
 - Bumped repository version to 1.0.21.
+- Prevented linked Deposit and Payment bank labels from being re-imported as new
+  legacy accounts during repeatable seeds, and normalized existing account links.
 
 ## v-1.0.20
 
